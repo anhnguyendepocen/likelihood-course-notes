@@ -1,0 +1,93 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage{amssymb}
+%\usepackage[nomarkers]{endfloat}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{wasysym}
+\usepackage{wrapfig}
+
+\textwidth = 6.5 in
+\textheight = 9 in
+\oddsidemargin = 0.0 in
+\evensidemargin = 0.0 in
+\topmargin = 0.0 in
+\headheight = 0.0 in
+\headsep = 0.0 in
+\parskip = 0.1in
+\parindent = 0in
+
+\begin{document}
+\pagestyle{empty}
+
+\begin{center}
+{\bf \large BIOL 701 Likelihood Methods in Biology:  Homework \#1 Answers}
+\end{center}
+1). In a predation experiment, 5 different prey items are in arena.  A predator consumes two items, one after the other.  How many outcomes in
+\newline
+a). Five choices for the first item, and 4 choices for the second, so there are 20 possible outcomes.
+\newline
+b). There are four choices for the second if the first item consumed is \#4, so there are 4 possible outcomes.
+\newline
+c).  Similarly, there are four choices for the first if the second item consumed is \#4, so there are 4 possible outcomes
+\newline
+d). This is the sum of b and c since they are mutually exclusive, 8 possible outcomes.
+\newline
+c). Four choices for the first item and 3 choices for the second, so there are 12 possible outcomes.
+\vspace*{.1in}
+
+2).  The binoculars of four ornithologists (A, B, C, and D) get mixed up in a bag when running away from a charging rhino.  After they escape, binoculars are passed out at random upon hearing a Blue-throated Barbet.  
+\newline
+a).  There are 4!=24 different ways to pass out the binoculars at random.  If C gets her own, there are 3!=6 ways to pass out the remaining 3 pairs, so the probability is $\frac{3!}{4!}=\frac{1}{4}$.
+\newline
+b).  If A and D get their own binoculars, there are 2! ways to distribute the remaining two pairs, so the probability is $\frac{2!}{4!}=\frac{1}{12}$.
+\newline
+c).  If B, C and D get their own binoculars, there is only 1 way to distribute the remaining pair, so the probability is $\frac{1!}{4!}=\frac{1}{24}$.
+
+
+but they are all trampled or gored because they were only paying attention to birds so it's academic.
+\vspace*{.1in}
+
+3).  Let $\Omega$ be the set of points with positive integer coordinates:  $\omega=(i,j)$, and define a probability distribution by $p(\omega)=1/2^{i+j}$.
+
+a).  $\sum p(\omega)=\sum_{i=1}^\infty \sum_{j=1}^\infty \frac{1}{2^{i+j}}=\sum_{i=1}^\infty \sum_{j=1}^\infty \frac{1}{2^{i}}\frac{1}{2^{j}}=\frac{1}{2}\sum_{j=1}^\infty \frac{1}{2^{j}}+\frac{1}{4}\sum_{j=1}^\infty \frac{1}{2^{j}}+\cdots$.
+
+We know that $\sum_{j=0}^\infty \frac{1}{2^{j}}=\frac{1}{1-\frac{1}{2}}=2$, which implies that $\sum_{j=1}^\infty \frac{1}{2^{j}}=\sum_{j=0}^\infty \frac{1}{2^{j}}-\frac{1}{2^0}=1$, which means that each sum over j above equals one and the whole expression reduces to a sum over i, which we know equals 1 from the geometric series above.
+
+b).  Probability of the event $\{(i,j): i+j\leq 4\}=\sum_{i=1}^3\sum_{j=1}^{4-i}=\frac{1}{4}+\frac{1}{8}+\frac{1}{16}+\frac{1}{8}+\frac{1}{16}+\frac{1}{16}=\frac{11}{16}$
+\vspace*{.1in}
+
+4).  If you assume that the sex of each child is determined independently, then observing one of Smith's children gives you no information about the sex of the other.  
+
+The second line of reasoning might seem valid if we are randomly selecting ``families," pairs of children, at random from the sample space.  In that case, knowing that one of the children in the pair is a boy does rule out the GG family, but the question asks what is the probability that the second child is a boy.  We could assume that each family \{BB, BG, GB, GG\} has a prior probability of 1/4 and then ask what the probability of each family type is given that we met a boy.  
+
+First we need $P(B)=P(B|BB)P(BB)+P(B|BG)P(BG)+P(B|GB)P(GB)+P(B|GG)P(GG)=1*\frac{1}{4}+\frac{1}{2}*\frac{1}{4}+\frac{1}{2}*\frac{1}{4}+0*\frac{1}{4}=\frac{1}{2}$.  This is an example of conditioning on a partition of the sample space.
+
+Then $P(BB|B)=P(B|BB)P(BB)/P(B)=\frac{1}{4}/\frac{1}{2}=\frac{1}{2}$.
+
+\vspace*{.1in}
+
+5).  $(X, Y)$ has the bivariate CDF $F(x,y)=\frac{1}{2}(x^2y+xy^2)$ on the unit square:  $0<x<1$, $0<y<1$.
+
+a).  $F(1,1)=\frac{1}{2}(1+1)=1$
+
+b).  $f(x,y)=\frac{\partial ^2F(x,y)}{\partial x\partial y}=\frac{\partial }{\partial y}\frac{1}{2}(2xy+y^2)=\frac{1}{2}(2x+2y)=x+y$
+
+c).  $F(x, y>1)=\frac{1}{2}(x^2+x)$ since $P(Y\leq a)$, for $a>1$ is 1.  Y can only assume values less than 1 so the probability that Y is less than a number greater than 1 is 1.
+
+d).  $f_X(x)=\int_0^1f(x,y)dy=\int_0^1(x+y)dy=(xy+\frac{y^2}{2})\bigg|_{y=0}^{y=1}=x+\frac{1}{2}$.  By symmetry, $f_Y(y)=y+\frac{1}{2}$.
+
+e).  $P(X+Y<1)=\int_o^1\int_0^{1-y}(x+y)dxdy=\int_0^1\frac{(1-y)^2}{2}+(1-y)ydy=\int_0^1\frac{1}{2}-\frac{y^2}{2}dy=\frac{1}{3}$
+
+\vspace*{.1in}
+6). The joint p.d.f of $(X,Y)$ is $f(x,y)=6(1-x-y)$ for $0<y<1-x$ and $0<x<1$.  Find the conditional p.d.f.'s $f(x|y)$ and $f(y|x)$.
+
+$f_X(x)=\int_0^{1-x}6(1-x-y)dy=6(y-xy-\frac{y^2}{2})\bigg|_{y=0}^{y=1-x}=6(\frac{1}{2}-x+\frac{x^2}{2})=3(1-x)^2$
+
+$f(y|x)=\frac{f(x,y)}{f_X(x)}=\frac{2(1-x-y)}{(1-x)^2}$
+
+$f_Y(y)=\int_0^{1-y}6(1-x-y)=3(1-y)^2 \rightarrow f(x|y)=\frac{2(1-x-y)}{(1-y)^2}$
+
+
+
+\end{document}

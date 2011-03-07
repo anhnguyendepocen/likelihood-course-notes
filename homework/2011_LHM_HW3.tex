@@ -1,0 +1,83 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\textwidth = 6.5 in
+\textheight = 9 in
+\oddsidemargin = 0.0 in
+\evensidemargin = 0.0 in
+\topmargin = 0.0 in
+\headheight = 0.0 in
+\headsep = 0.0 in
+\parskip = 0.2in
+\parindent = 0.0in
+\usepackage{paralist} %compactenum
+
+%\newtheorem{theorem}{Theorem}
+%\newtheorem{corollary}[theorem]{Corollary}
+%\newtheorem{definition}{Definition}
+\usepackage{tipa}
+\usepackage{amsfonts}
+\usepackage[mathscr]{eucal}
+
+% Use the natbib package for the bibliography
+\usepackage[round]{natbib}
+\bibliographystyle{apalike}
+\newcommand{\exampleMacro}[1]{\mu_{#1}}
+
+\title{Brief Article}
+\author{The Author}
+
+\usepackage{url}
+\usepackage{hyperref}
+\hypersetup{backref,  pdfpagemode=FullScreen,  linkcolor=blue, citecolor=red, colorlinks=true, hyperindex=true}
+
+\begin{document}
+\begin{center}
+	{\bf BIOL 701  Likelihood Methods in Biology: Homework \#3}\\
+	{Due Wednesday, March 9} 
+\end{center}
+1. Radioactive decay is a classic ``Poisson process''.  The number of alpha particles emitted from a sample of radioactive material during a fixed unit of time follows the Poisson distribution:$$\Pr(X=k) = \frac{e^{-\lambda}\lambda^k}{k!}$$where $X$ is the number of particles emitted (the random variable), $k$ is a particular value of $X$, and $\lambda$ is the mean emission rate (which depends on the amount and type of radioactive material).
+We use an alpha particle detector to investigate an unknown material.  The number of particles detected per minute is recorded for 20 distinct, 1-minute time intervals (see Table 1).  
+Use the likelihood ratio method to test the hypothesis that the mean emission rate, $\lambda$ = 2.\begin{table}[htdp]
+\begin{center}
+\begin{tabular}{c|cp{1in}c|c}
+\hline
+Interval	I.D. & Particles detected & & Interval	I.D. & Particles detected \\\hline
+1	& 3 & & 11	& 1 \\2	& 2 & & 12	& 3 \\3	& 2 & & 13	& 1 \\4	& 5 & & 14	& 4 \\5	& 4 & & 15	& 5 \\6	& 6 & & 16	& 4 \\7	& 1 & & 17	& 1 \\8	& 1 & & 18	& 2 \\9	& 3 & & 19	& 0 \\10	& 0 & & 20	& 4 \\\hline
+\end{tabular}
+\end{center}
+\label{default}
+\end{table}\\
+
+See problem \#2 on the next page.
+\newpage
+2. You are interested in estimating the selfing rate for an annual plant.  You have a molecular marker with two alleles (`A' and `a'). You have access to seeds that you can assume are in Hardy-Weinberg equilibrium (let's say that your seed bank was created by artificially pollinating plants selected at random from within a large population)\footnote{Recall that Hardy-Weinberg equilibrium assumes random mating and predicts genotypic frequencies to be $p^2$ for the homozygote genotype of an allele that occurs at frequency $p$. Heterozygotes containing that allele should occur at frequency $2p(1-p)$.}.  You grow the seeds in a field, allow the resulting plants to either self or outcross according to their own inclination, and then you genotype the offspring.
+The genotypic numbers that you observe in the offspring are $n_{AA} = 186$, $n_{Aa} = 228$, and $n_{aa} = 86$.
+
+You would like to estimate the frequency of selfing in your experimental population ($s$).  But you do not know the frequency of the A-allele ($p_A$).
+
+\begin{compactenum}
+	\item[{\bf Part 1:}] Write down the log likelihood as a function of the variables $n_{AA}, n_{Aa}, n_{aa}, s,$ and $p_A$ (don't put the actual numbers in, use the variables).
+\end{compactenum}
+
+Hint: You should assume Hardy-Weinberg genotypic frequencies for the parental generation, but the offspring are only expected to be in Hardy-Weinberg genotypic frequencies if the selfing rate is 0.
+
+
+
+Normally, we would try to find generic equations for the maximum likelihood estimates of both $\hat s$ and $\hat p_A$.
+The math is very tedious in this case.  So, I am going to tell you that the global value of $\hat p_A = 0.6$ for this example. 
+\begin{compactenum}
+	\item[{\bf Part 2:}] Solve for the MLE of $\hat s$ given this knowledge.  Start  by substituting the values from the real data and the value of $\hat p_A=0.6$ into your equation for the log-likelihood. Then find the maximum likelihood value of $\hat s$.  This will involve a bit of tedious math, and using the quadratic equation.
+\end{compactenum}
+
+Suppose you are interested in testing the hypothesis that the selfing rate is 0.
+\begin{compactenum}
+	\item[{\bf Part 3:}] Solve for the MLE of $p$ given the real data and the value of $s = 0$.
+	\item[{\bf Part 4:}] Calculate the log likelihoods for the hypothesis that $s=0$ and  for the global maximum likelihood point.
+	\item[{\bf Part 5:}] Can you reject a null hypothesis that $s=0$?
+\end{compactenum}
+
+
+\end{document}  
+

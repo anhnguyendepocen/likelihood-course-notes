@@ -1,0 +1,232 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\textwidth = 6.5 in
+\textheight = 9 in
+\oddsidemargin = -0.5 in
+\evensidemargin = -0.5 in
+\topmargin = 0.0 in
+\headheight = 0.0 in
+\headsep = 0.0 in
+\parskip = 0.2in
+\parindent = 0.0in
+\usepackage{paralist} %compactenum
+\usepackage{listings}
+%\newtheorem{theorem}{Theorem}
+%\newtheorem{corollary}[theorem]{Corollary}
+%\newtheorem{definition}{Definition}
+\usepackage{tipa}
+\usepackage{amsfonts}
+\usepackage[mathscr]{eucal}
+\renewcommand{\Pr}{{\mathbb P}}
+
+% Use the natbib package for the bibliography
+\usepackage[round]{natbib}
+\bibliographystyle{apalike}
+\newcommand{\exampleMacro}[1]{\mu_{#1}}
+
+\title{Assignment \#2 Key}
+
+\usepackage{url}
+\usepackage{hyperref}
+\hypersetup{backref,  pdfpagemode=FullScreen,  linkcolor=blue, citecolor=red, colorlinks=true, hyperindex=true}
+
+\begin{document}
+\subsection*{Assignment \#2 Key}
+(1). For a sample of size $n$ from a population with an exponential p.d.f., $\lambda e^{-\lambda t},t > 0$, write down the likelihood and compute the maximum likelihood estimate of $\lambda$. Be sure to show that it is a maximum.
+
+The data, $T$, is a vector of points: $(t_1,t_2,\ldots t_n)$.
+The model is parameterized by a single parameter, $\lambda$, and $\lambda> 0$ (because $\lambda \leq 0$ would result in a ``illegal'' p.d.f.)
+\begin{eqnarray*}
+	L(\lambda) & = &\Pr(T|\lambda) \\
+		& = & \prod_{i=1}^{n}\Pr(t_i|\lambda)\\
+		& = & \prod_{i=1}^{n}\lambda e^{-\lambda t_i}\\
+	\ln[L(\lambda)]& = & \sum_{i=1}^{n}\left(\ln \lambda -\lambda t_i\right) \\
+		& = & n\ln \lambda - \lambda \left(\sum_{i=1}^{n}t_i\right) \\
+	\frac{d\ln[L(\lambda)]}{d\lambda}& = & \frac{n}{\lambda} - \sum_{i=1}^{n}t_i
+\end{eqnarray*}
+We can solve for the value of $\lambda$ that causes $\frac{d\ln[L(\lambda)]}{d\lambda}$ to be equal to 0.
+We call this $\hat{\lambda}$
+\begin{eqnarray*}
+	\frac{n}{\hat{\lambda}} - \sum_{i=1}^{n}t_i & = & 0 \\
+	\frac{n}{\hat{\lambda}}  & = & \sum_{i=1}^{n}t_i \\
+	\hat{\lambda} & = & \frac{n}{\sum_{i=1}^{n}t_i}
+\end{eqnarray*}
+Note that the sample mean of $T$ is simply $\frac{\sum_{i=1}^{n}t_i}{n}$, so the more compact form of stating our MLE is:
+	$$\hat{\lambda} =  1/\bar{t}$$
+where $\bar{t}$ is the mean value of $t$. 
+To verify that this is a maximum, we should show that the second derivative of the $\ln L$ function is negative at this point:
+\begin{eqnarray*}
+	\frac{d^2\ln[L(\lambda)]}{d\lambda^2}& = & \frac{-n}{\lambda^2} \\
+\end{eqnarray*}
+Note that this is negative for all values of $\lambda$, so the $\hat{\lambda}$ clearly is a maximum.
+\newpage
+(2) $S_n$ is the number of successes in $n$ trials. There are $n \choose k$ ways of having $k$ success in $N$ trials. So, this group's likelihood reflects the multinomial likelihood.\\
+The group that is modeling the random variable as $U$ appears to be thinking of the experiment as recording the number of trials, $N$, required until there are $k$ successes.
+If you know that you are going to conduct an experiment until you reach $k$ successes, then you know the last value will be a success.
+Thus, when counting the number of permutations of solutions, you would count the $N-1 \choose k - 1$ ways of ordering $k-1$ successes in $N-1$ trials.
+
+They will make the same inference about $p$. Because the likelihood is defined to be any function that is proportional to the probability of the data, both of these groups are using what are essentially the same model (the likelihoods are simply scaled differently).
+If you take the log of the probability functions, you'll see that the coefficients of the p.f.~that differ between the groups turns into an constants that are added to each $\ln L$.
+When you take the derivative (to find the maximum), these additive constants contribute 0 to the derivative (hence they are irrelevant).
+\newpage
+(3) The data, $X$, would be a vector of $n$ values, $(x_1, x_2, \ldots, x_n)$ with each $x_i \sim \mathcal{N}(\mu, 1)$.
+The model is parameterized by a single parameter, $\mu$, where $\mu$ can be any real number.
+\begin{eqnarray*}
+	L(\mu) & = &\Pr(X|\mu) \\
+		& = & \prod_{i=1}^{n}\Pr(x_i|\mu)\\
+		& = & \prod_{i=1}^{n}\frac{1}{\sqrt{2\pi\sigma^2}}e^{-\frac{(x_i-\mu)^2}{2\sigma^2}} \\
+\end{eqnarray*}
+With the last step resulting from substituting the probability density function from the Normal distribution $\mathcal{N}(\mu, \sigma^2)$. 
+In this problem we are told that $\sigma^2$ = 1 (which is why we don't consider $\sigma$ to be a parameter to be estimated). So we can simplify:
+\begin{eqnarray*}
+	L(\mu) & = & \prod_{i=1}^{n}\frac{1}{\sqrt{2\pi}}e^{-\frac{(x_i-\mu)^2}{2}} \\
+	\ln [L(\mu)] & = & \sum_{i=1}^{n}\ln\left(\frac{1}{\sqrt{2\pi}}e^{-\frac{(x_i-\mu)^2}{2}}\right) \\
+	& = & \sum_{i=1}^{n}\left[\ln\left(\frac{1}{\sqrt{2\pi}}\right)+\ln\left(e^{-\frac{(x_i-\mu)^2}{2}}\right)\right] \\
+	& = & n\ln\left(\frac{1}{\sqrt{2\pi}}\right) + \sum_{i=1}^{n}-\frac{(x_i-\mu)^2}{2} \\
+	& = & n\ln\left(\frac{1}{\sqrt{2\pi}}\right) - \sum_{i=1}^{n}\frac{x_i^2-2x_i\mu+\mu^2}{2} \\
+	& = & n\ln\left(\frac{1}{\sqrt{2\pi}}\right) - \left(\sum_{i=1}^{n}\frac{x_i^2}{2}\right) + \left(\sum_{i=1}^{n}\frac{2x_i\mu}{2}\right) - \left(\sum_{i=1}^{n}\frac{\mu^2}{2}\right) \\
+	& = & n\ln\left(\frac{1}{\sqrt{2\pi}}\right) - \left(\sum_{i=1}^{n}\frac{x_i^2}{2}\right) + \left(\sum_{i=1}^{n}x_i\mu\right) - \frac{n\mu^2}{2} \\
+	\frac{d\ln [L(\mu)]}{d\mu} & = & \left(\sum_{i=1}^{n}x_i\right) - n\mu\\
+	\frac{d^2\ln [L(\mu)]}{d\mu^2} & = & - n\\
+\end{eqnarray*}
+Note that $\frac{d\ln [L(\mu)]}{d\mu}= 0$ when:
+	$$\hat{\mu} = \frac{\sum_{i=1}^{n}x_i}{n} = \bar{x}$$
+Note that the second derivative is always negative, so this is a maximum.
+This justifies the use of the sample mean ($\bar{x}$) to estimate the population mean ($\mu$).  
+\newpage
+If we are interested in the likelihood ratio test statistic between the true value of the parameter $\mu$ and $\hat{\mu}$, then
+\begin{eqnarray*}
+	\Lambda & = & \frac{L(\mu)}{L(\hat{\mu})}\\
+	2\ln\Lambda & = & 2\ln[L(\mu)] - 2 \ln[L(\hat{\mu})]\\
+\end{eqnarray*}
+Note that the $Z$-score for the estimating the mean of a population is:
+$$ Z = \frac{\bar{x} - \mu}{\sigma/\sqrt{n}}$$
+In our special case (with $\sigma = 1$), this is:
+$$ Z = \sqrt{n}\left(\bar{x} - \mu\right) $$
+By substitution (and algebra):
+\begin{eqnarray*}
+	-2\ln\Lambda & = & 2\ln[L(\mu)] - 2 \ln[L(\hat{\mu})]\\
+	& = & -2\left[ n\ln\left(\frac{1}{\sqrt{2\pi}}\right) - \left(\sum_{i=1}^{n}\frac{x_i^2}{2}\right) + \left(\sum_{i=1}^{n}x_i\mu\right) - \frac{n\mu^2}{2} - 
+		n\ln\left(\frac{1}{\sqrt{2\pi}}\right) + \left(\sum_{i=1}^{n}\frac{x_i^2}{2}\right) - \left(\sum_{i=1}^{n}x_i\hat{\mu}\right) + \frac{n\hat{\mu}^2}{2} \right]\\
+	& = &  -2\left[\left(\sum_{i=1}^{n}x_i\mu\right) - \frac{n\mu^2}{2} - \left(\sum_{i=1}^{n}x_i\hat{\mu}\right) + \frac{n\hat{\mu}^2}{2} \right]\\
+	& = &  -2\left[\left(\sum_{i=1}^{n}x_i(\mu-\hat{\mu})\right) + \frac{n}{2}\left(\hat{\mu}^2 - \mu^2\right) \right]\\
+	& = &  -2n\bar{x}(\mu-\hat{\mu}) - n\left(\hat{\mu}^2 - \mu^2\right)
+\end{eqnarray*}
+with the last step being established by $\sum_{i=1}^{n}x_i = n\bar{x}$.
+
+Now it is convenient to substitute our  point estimate of $\hat{\mu} = \bar{x}$ to arrive at:
+\begin{eqnarray*}
+	-2\ln\Lambda & = &  -2n\bar{x}(\mu-\bar{x}) - n\left(\bar{x}^2 - \mu^2\right) \\
+	& = &  -2n\bar{x}\mu +2n\bar{x}^2 - n\bar{x}^2 + n\mu^2 \\
+	& = &  n\bar{x}^2 - 2n\bar{x}\mu  +n\mu^2 \\
+	& = &  n\left(\bar{x}-\mu\right)^2 \\
+\end{eqnarray*}
+We can see that $-2\ln\Lambda$ is simply the formula for the $Z$-score squared.
+
+Note that a chi-squared distribution with $k$ degrees of freedom is equivalent to the sum of the squares of $k$ independent draws from $\mathcal{N}(0,1)$.
+Notationally:
+\begin{eqnarray*}
+	& & \mbox{If } x_i \sim  \mathcal{N}(0,1) \\
+	& & \mbox{then }\sum_{i=1}^k x_i^2 \sim  \chi_k^2
+\end{eqnarray*}
+\newpage
+(4) The data, $X$, would be a vector of $n$ values, $(x_1, x_2, \ldots, x_n)$ with each $x_i \sim \mathcal{U}(\theta-\frac{1}{2}, \theta+\frac{1}{2})$.
+The model is parameterized by a single parameter, $\theta $, where $\theta$ can be any real number.
+
+In general the p.d.f. for $\mathcal{U}(c,d)$ is $\frac{1}{d-c}$ (this can be derived from the fact that the integral under the p.d.f. must be 1).
+More pedantically, we should state that if the point that we are interested in is less that $c$ or greater than $d$, then the density is 0 (in other words such points are impossible).\
+
+In the case of our problem, $d-c = \theta+\frac{1}{2} - \theta-\frac{1}{2} = 1$, so the probability density is 1 in the region of points within 0.5 of $\theta$.
+Thus,
+\begin{eqnarray*}
+	f(x|\theta) & & \left\{\begin{array}{cl}
+ 1 &  \mbox{if } \theta-\frac{1}{2} \leq x \leq \theta+\frac{1}{2} \\
+ 0 & \mbox{otherwise}
+\end{array}
+\right.
+\end{eqnarray*}
+For the entire dataset:
+\begin{eqnarray*}
+	L(\theta) & = &\Pr(X| \theta) \\
+		& = & \prod_{i=1}^{n}\Pr(x_i| \theta)\\
+\end{eqnarray*}
+Note that the likelihood will be 1 if and only if we are considering a value of $\theta$ that is within 0.5 of every datum (each $x_i$ value).
+We can express this compactly as:
+\begin{eqnarray*}
+	L(\theta) & = & \left\{\begin{array}{cl}
+ 1 &  \mbox{if: } \max(x)-\frac{1}{2} \leq \theta \leq \min({x})+\frac{1}{2} \\
+ 0 & \mbox{otherwise}
+\end{array}
+\right.
+\end{eqnarray*}
+Where $\min(x)$ and $\max(x)$ denote the smallest and largest values observed in the dataset. Note that if these values are greater than 1 unit apart, then there will be no values of $\theta$ that are consistent with the data (all values of $\theta$ will have a likelihood of 0 indicating that they cannot generate the data). 
+
+If there are possible values of $\theta$, then all values within the range described will be ``tied'' as the MLE values.
+
+\newpage
+(5) If we are considering the probability density associated with the smallest of $n$ observations corresponding to the value $v$, then we are interested in the event that:
+ $n-1$ draws have values greater than $v$ and one draw has a value of exactly $v$.
+There are $n$ ways that this can occur (the first draw is the smallest, the second draw is the smallest, $\ldots$ the $n$th draw is the smallest):
+\begin{eqnarray*}
+	f_{X_{(1)}}(v) & = & n\left[\Pr(x_i > v)\right]^{n-1}f(v)\\
+	\Pr(x_i > v) & = & 1 - \Pr(x_i \leq v) \\
+		& = & 1 - F(v) \\
+	f_{X_{(1)}}(v) & = & n\left[1-  F(v)\right]^{n-1}f(v)
+\end{eqnarray*}
+For the case of individual draws that are exponentially-distributed:
+\begin{eqnarray*}
+	f(v) & = & \lambda e ^{-\lambda v}
+\end{eqnarray*}
+Recall that:
+\begin{eqnarray*}
+	F(v) & = & \int_{-\infty}^v f(x) dx
+\end{eqnarray*}
+For the exponential distribution, the probability density is 0 for any negative value, thus:
+\begin{eqnarray*}
+	F(v) & = & \int_{0}^v f(x) dx \\
+		& = & \int_{0}^v \lambda e ^{-\lambda x} dx \\
+		& = & -e ^{-\lambda x}\Big|_0^v \\
+		& = & -e ^{-\lambda v} - \left(-e ^{-\lambda 0}\right) \\
+		& = & 1 -  e ^{-\lambda v}\\
+\end{eqnarray*}
+Substituting into our magical first-order statistic probability density function:
+\begin{eqnarray*}
+	f_{X_{(1)}}(v) & = & n\left[1-  (1 -  e ^{-\lambda v})\right]^{n-1}\lambda e ^{-\lambda v} \\
+	   & = & n\left[1-  1 +  e ^{-\lambda v}\right]^{n-1}\lambda e ^{-\lambda v} \\
+	   & = & n\left[e ^{-\lambda v}\right]^{n-1}\lambda e ^{-\lambda v} \\
+	   & = & n e ^{-(n-1)\lambda v}\lambda e ^{-\lambda v} \\
+	   & = & n \lambda e ^{-n\lambda v} \\
+\end{eqnarray*}
+(You may recognize this distribution - it is simply an exponential distribution with parameter $n\lambda$ instead of $\lambda$)
+\newpage
+(6) The Binomial distribution has a sample size, $n$, and a probability of success for each sample, $p$.
+The distribution is defined on the range that corresponds to the number of possible successes. Specifically, this is the integers such that $0\leq k \leq n$.
+The mean of the distribution is $np$ and the variance is $np(1-p)$. I used the following R code:
+\begin{lstlisting}[frame=single,language=S,columns=fixed,upquote=false,showstringspaces=false]
+#!/usr/bin/env R
+pdf("Assignment2Prob6.pdf")
+n = 75
+p = 0.4
+ten = rbinom(10, n, p)
+twenty = rbinom(20, n, p)
+hundred = rbinom(100, n, p)
+plot(ecdf(ten), do.points=FALSE, verticals=TRUE, 
+    xlim=c(0,n),
+    main="CDFs of binomial and normal", lty=4)
+lines(ecdf(twenty), do.points=FALSE, verticals=TRUE, lty=2)
+lines(ecdf(hundred), do.points=FALSE, verticals=TRUE, lty=3)
+x = seq(0, n, 0.01)
+lines(x, pnorm(x, mean=n*p, sqrt(n*p*(1-p))), lty=1)
+legend(50, .5, c("Binom-10", "Binom-20", "Binom-100", "Normal"), 
+	lty=c(4,2,3,1))
+dev.off()
+\end{lstlisting}
+to produce:\\
+\begin{picture}(-0,100)(-0,0)
+	\put(-30,5){\makebox(-0,-150)[l]{\includegraphics[scale=0.6]{Assignment2Prob6.pdf}}}
+\end{picture}
+
+\bibliography{phylo}
+ \end{document}  

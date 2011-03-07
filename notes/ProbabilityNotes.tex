@@ -1,0 +1,93 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\textwidth = 6.5 in
+\textheight = 9 in
+\oddsidemargin = 0.0 in
+\evensidemargin = 0.0 in
+\topmargin = 0.0 in
+\headheight = 0.0 in
+\headsep = 0.0 in
+\parskip = 0.2in
+\parindent = 0.0in
+\usepackage{paralist} %compactenum
+
+%\newtheorem{theorem}{Theorem}
+%\newtheorem{corollary}[theorem]{Corollary}
+%\newtheorem{definition}{Definition}
+\usepackage{tipa}
+
+% Use the natbib package for the bibliography
+\usepackage[round]{natbib}
+\usepackage{epsdice}
+\bibliographystyle{apalike}
+\newcommand{\exampleMacro}[1]{\mu_{#1}}
+\renewcommand{\baselinestretch}{1} % single-spacing (2 for double-spacing)
+
+
+\begin{document}
+
+\section*{Likelihood methods in biology: notes by MTH}
+
+%In problem 2: $ \mathcal{N}(\mu, 1) $ means the Normal distribution with mean of $\mu$ and standard deviation 1.
+%
+%In problem 3: $ \mathcal{U}(\theta-\frac{1}{2}, \theta+\frac{1}{2}) $ means the Uniform distribution between $\theta-\frac{1}{2}$ and $\theta+\frac{1}{2}$
+%
+%In problem 4: $Exp(\lambda)$ means the Exponential distribution with hazard parameter $\lambda$
+
+
+A probability statement assigns a non-negative number to the proposition that a particular event occurs.
+
+The set of all possible events that could occur is referred to as the sample space.
+The conventional notation for the sample space is $\Omega$ (which is the capital Greek letter omega).
+In mathematics, sets are usually with capital letters, and whenever it is convenient, the elements of a set are denoted by the lower case form of the same letter.
+When a set is described by listing its members, the listing of the members is surrounded by ``curly braces''.
+Thus, if there are $n$ distinct events in $\Omega$, then we might convey this as:
+$$ \Omega = \{\omega_1, \omega_2, \omega_3, \ldots, \omega_n\}$$
+($\omega$ is the lower-case omega).
+
+If we were considering throwing a six-sided die, then we might say that:
+ $$ \Omega = \{\epsdice{1},\epsdice{2}, \epsdice{3}, \epsdice{4}, \epsdice{5}, \epsdice{6}\}.$$
+
+\subsection*{Multiple ways of describing a sample space}
+There are often many valid ways to describe the sample space and the events.  For example, we could describe a die-roll not just by number that faces up, but also by the distance the die move (from the person rolling the die).
+If we treat the distance traveled as a continuous variable, then there would be an infinite number of possible outcomes, and each event would be a could be described as a pair of quantities, such as $(\epsdice{1}, 0.134131115).$
+As long as you are self-consistent when you think of events and the sample space, you should be fine. But some descriptions of the sample space will be much less tractable. Part of the ``art'' of solving problems in probability is to recognize convenient ways of representing the sample space.
+
+\subsection*{Random variables}
+Probabilistic statements arise when we want to make statements about an events that have or will occur, but there is an element of uncertainty or randomness.
+There are an infinite number of things that we could measure about real biological phenomena, and it can be helpful to formally recognize the distinction between the infinitely complex events that occur in nature and the data that we can collect.
+We will use the generic term ``variable'' to describe a function that maps an event to a statistic (usually a numerical value).
+If we refer to a random variable $X$, then the most formal way of referring to the mapping would be $X(\omega)$.
+
+In the die-rolling example the most obvious random variable simply maps the number of dots on the upper face to the integers:
+\begin{eqnarray*}
+	X(\epsdice{1})&  = & 1\\
+	X(\epsdice{2})&  = & 2\\
+	& \ldots & \\
+	X(\epsdice{6})&  = & 6\\
+\end{eqnarray*}
+If we were only interested whether the roll showed an even or odd number of dots, then we could define a random variable (let's call it $Y$) that is the remainder of dividing the count of dots by 2:
+\begin{eqnarray*}
+	Y(\epsdice{1})&  = & 1\\
+	Y(\epsdice{2})&  = & 0\\
+	Y(\epsdice{3})&  = & 1\\
+	& \ldots & \\
+	Y(\epsdice{6})&  = & 0\\
+\end{eqnarray*}
+
+Often it is cumbersome to always refer to the ``raw'' events, so we will use a notation in which the random variable does not look like a function.
+For example, rather than writing $\Pr(X(\omega) = 6) = 1/6$, we would often simply write $\Pr(X = 6)$.
+
+That is rarely too confusing, but it gets worse.
+The set of possible values that the random variable can take WRITE HERE!!!!
+
+\subsection*{Events as sets of outcomes}
+Another confusing aspect of the concept of events entails the fact that we can define events to be sets of other events.  For example, on could define the event that a die roll results in an even number:
+$$\omega_{\mbox{even}} = \{\epsdice{2}, \epsdice{4}, \epsdice{6}\}$$
+
+
+
+\bibliography{phylo}
+ \end{document}   
