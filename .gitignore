@@ -1,0 +1,22 @@
+*.log
+*.aux
+*.out
+*.bbl
+*.doc
+*.dvi
+*.blg
+
+BIOL701_ADV_STAT.pdf
+BIOL701_likelihood_syllabus.pdf
+#	notes/Assignment2Key.blg
+#	notes/Assignment2Key.pdf
+#	notes/Assignment2Prob6.pdf
+#	notes/ProbabilityNotes.pdf
+#	notes/Rplots.pdf
+#	notes/mthlecture/lrTestStatistic/TwoParamNormal.mov
+#	notes/mthlecture/lrTestStatistic/logLRAroundMLEforSIs1.pdf
+#	notes/mthlecture/lrTestStatistic/lrTestSlides.pdf
+#	notes/mthlecture/lrTestStatistic/twoParamNormal.blg
+#	notes/mthlecture/lrTestStatistic/twoParamNormal.pdf
+#	others/
+#	probsurv.pdf
