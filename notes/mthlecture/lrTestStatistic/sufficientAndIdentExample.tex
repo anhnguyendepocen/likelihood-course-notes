@@ -1,0 +1,205 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\textwidth = 6.5 in
+\textheight = 9 in
+\oddsidemargin = 0.0 in
+\evensidemargin = 0.0 in
+\topmargin = 0.0 in
+\headheight = 0.0 in
+\headsep = 0.0 in
+\parskip = 0.2in
+\parindent = 0.0in
+\usepackage{paralist} %compactenum
+
+%\newtheorem{theorem}{Theorem}
+%\newtheorem{corollary}[theorem]{Corollary}
+%\newtheorem{definition}{Definition}
+\usepackage{tipa}
+\usepackage{amsfonts}
+\usepackage[mathscr]{eucal}
+
+% Use the natbib package for the bibliography
+\usepackage[round]{natbib}
+\bibliographystyle{apalike}
+\newcommand{\exampleMacro}[1]{\mu_{#1}}
+
+\title{Brief Article}
+\author{The Author}
+
+\usepackage{url}
+\usepackage{hyperref}
+\hypersetup{backref,  pdfpagemode=FullScreen,  linkcolor=blue, citecolor=red, colorlinks=true, hyperindex=true}
+
+\begin{document}
+You suspect that a population of big horn sheep are made up of two classes of males based on their sparring ability: Strong and Weak. The proportion of strong individuals is unknown.\\ {\bf Experiment:}
+\begin{compactitem}
+	\item You randomly select 10 pairs of males from a large population. 
+	\item For each pair you randomly assign one of them the ID 0 and the other the ID 1.  
+	\item You record the \# of winner from 2 contests.
+\end{compactitem}
+{\bf Model:}
+\begin{compactitem}
+	\item If two individuals within the same class fight, you expect either outcome to be equally likely.
+	\item If a Strong is paired against a Weak then you expect that the probability that the stronger one wins with some probability, $w$.
+	\item $w$ is assumed to be the same for every pairing of Strong {versus} Weak and the same for every bout within such a pairing.
+\end{compactitem}
+Here is the data (and three alternative codings):\\
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{|lc|}
+\hline
+& \\
+\multicolumn{2}{|c|}{$X$}\\
+\hline
+$x_1 = 1$ & $x_{11} = 1$  \\
+$x_2 = 1$ & $x_{12} = 0$  \\
+$x_3 = 0$ & $x_{13} = 1$  \\
+$x_4 = 1$ & $x_{14} = 1$  \\
+$x_5 = 0$ & $x_{15} = 0$  \\
+$x_6 = 0$ & $x_{16} = 1$  \\
+$x_7 = 1$ & $x_{17} = 1$  \\
+$x_8 = 0$ & $x_{18} = 0$  \\
+$x_9 = 1$ & $x_{19} = 0$  \\
+$x_{10} = 1$ & $x_{20} = 1$  \\
+\hline
+\end{tabular}
+\begin{tabular}{|l|}
+\hline
+\\
+$Y$\\
+\hline
+$y_1 = (1, 1)$   \\
+$y_2 = (1, 0)$  \\
+$y_3 = (0, 1)$  \\
+$y_4 = (1, 1)$  \\
+$y_5 = (0, 0)$  \\
+$y_6 = (0, 1)$  \\
+$y_7 = (1, 1)$  \\
+$y_8 = (0, 0)$  \\
+$y_9 = (1, 0)$  \\
+$y_{10} = (1, 1)$  \\
+\hline
+\end{tabular}
+\begin{tabular}{|l|}
+\hline\\
+$Z$\\
+\hline$z_1 = 0$   \\
+$z_2 = 1$  \\
+$z_3 = 1$  \\
+$z_4 = 0$  \\
+$z_5 = 0$  \\
+$z_6 = 1$  \\
+$z_7 = 0$  \\
+$z_8 = 0$  \\
+$z_9 = 1$  \\
+$z_{10} = 0$  \\
+\hline\end{tabular}
+
+\end{center}
+What can we say about $w$?
+
+At first it is tempting to think of this as twenty separate data points, represented by $X$.
+We would like to formulate a likelihood:
+$$L(w) = \Pr(X|w) = \prod_{i=1}^{n}\Pr(x_i|w)$$
+Because our assignment of 0 or 1 to the males is random, we would be forced to conclude that $\Pr(X=0) = \Pr(X=1) = \frac{1}{2},$ and thus the likelihood would be:
+\begin{eqnarray*} 
+	L(w) & = & \prod_{i=1}^{n}\Pr(x_i|w) \\
+	& = & \prod_{i=1}^{20}\frac{1}{20} =  2^{-20}
+\end{eqnarray*} 
+This is alarming because the likelihood is not a function of $w$.  
+If we had done everything right, then such a likelihood would mean that we can infer {\em nothing} about $w$ from these data (every value of $w$ would return the same likelihood).
+
+While it is true that $\Pr(x_1=0)=0.5$, further reflection reveals that $\Pr(x_{11}=0)$ is not necessarily 0.5.  
+The outcome of the first bout will give us some information about which male is stronger, and so the outcome of the second bout is not independent of the first bout.
+We could approach the likelihood as:
+\begin{eqnarray*} 
+	L(w) & = & \prod_{i=1}^{10}\Pr(x_i|w)\Pr(x_{i+10}|w)
+\end{eqnarray*} 
+Where the $i+10$ indexing exploits the fact that I've numbered the subscripts of $x$ such that the $i+10$ datum is the second bout associated with pair $i$.
+This is a fine way to proceed, but it may be less clumsy to simply recode the data to reflect that we have a pair of observations.
+This is accomplished in the coding referred to as $Y$.  
+Now we have ten independent trials, and each realization of the random variable can assume one of four values (this is basically the same as the last likelihood, but we won't be relying on any tricks of variable subscripting).
+\begin{eqnarray*} 
+	L(w) & = & \prod_{i=1}^{10}\Pr(y_i|w)
+\end{eqnarray*}
+
+At this point, we need to think about how to model $\Pr(y_i|w)$ statements.
+It is often best (when we have a few discrete events to consider), to simply start with one outcome rather.
+So lets tackle the probability that we would get a (0,0) outcome from a pair of bouts.
+We don't know whether either of the males is ``Strong'' or ``Weak,'' so we'll have to consider all possibilities.
+Let's use $r_0$ and $r_1$ to denote the ``class'' of rams 0 and 1; we will allow these variables to be $S$ or $W$ for strong and weak.
+By the law of total probability:
+\begin{eqnarray*} 
+ \Pr(y_i = (0,0)|w)  & = & \Pr(y_i = (0,0)|w,r_0=S,r_1=S)\Pr(r_0=S,r_1=S) + \ldots \\
+ & & \ldots + \Pr(y_i = (0,0)|w,r_0=S,r_1=W)\Pr(r_0=S,r_1=W) + \ldots \\
+ & & \ldots + \Pr(y_i = (0,0)|w,r_0=W,r_1=S)\Pr(r_0=W,r_1=S) + \ldots \\
+ & & \ldots + \Pr(y_i = (0,0)|w,r_0=W,r_1=W)\Pr(r_0=W,r_1=W) \\
+\end{eqnarray*}
+We note that if the males are evenly matched, then all four values of $y_i$ are equally likely (probability = 1/4).
+If we knew the males were mismatched, then the stronger would win both bouts with probability $w^2$ because we assume that the bouts are independent.
+The weaker would win both bouts with probability $(1-w)^2$ by the same logic. This leads us to:
+\begin{eqnarray*} 
+ \Pr(y_i = (0,0)|w)  & = &   \left(\frac{1}{4}\right)\Pr(r_0=S,r_1=S) + w^2 \Pr(r_0=S,r_1=W) + \ldots \\
+ &  & \ldots + (1-w)^2\Pr(r_0=W,r_1=S) + \left(\frac{1}{4}\right)\Pr(r_0=W,r_1=W) \\
+\end{eqnarray*}
+
+Clearly, if we want to get a likelihood (as a number, not an abstract equation), we'll need to model the probability of each male being strong or weak. 
+The problem says that the ``proportion of strong individuals is unknown.''
+We can simply treat this as a nuisance parameter, $s$.
+Because we are sampling the males randomly, we have:
+\begin{eqnarray*} 
+ \Pr(y_i = (0,0)|w)  & = &   \left(\frac{1}{4}\right)s^2 + w^2 s(1-s)  + (1-w)^2(1-s)s + \left(\frac{1}{4}\right)(1-s)^2 \\
+	 & = &   \left(\frac{1}{4}\right)(1-2s +2s^2) + (1 -2w +2w^2) s(1-s)
+\end{eqnarray*}
+This does not look too attractive, but we seem to be making progress. We can go through the same steps for the (1,1) outcome, and we get the same functional form:
+\begin{eqnarray*} 
+ \Pr(y_i = (1,1)|w)  & = &   \left(\frac{1}{4}\right)(1-2s +2s^2) + (1 -2w +2w^2) s(1-s).
+\end{eqnarray*}
+This makes sense, because we are randomly choosing a male to label 0, so we would not expect the (0,0) outcome to be more probable than the (1,1) outcome.
+
+When we consider an outcome like (0,1), and we have a pairing of males with mismatched strength we find that the probability of the outcome is $w(1-w)$:
+\begin{eqnarray*} 
+ \Pr(y_i = (0,1)|w)  & = &   \left(\frac{1}{4}\right)s^2 + w(1-w) s(1-s)  + (1-w)w(1-s)s + \left(\frac{1}{4}\right)(1-s)^2 \\
+	 & = &   \left(\frac{1}{4}\right)(1-2s +2s^2) + 2w(1-w) s(1-s) \\
+\Pr(y_i = (1,0)|w)  & = &\left(\frac{1}{4}\right)(1-2s +2s^2) + 2w(1-w) s(1-s)
+\end{eqnarray*}
+Adding up all four probabilities gives:
+\begin{eqnarray*} 
+\mbox{sum} & = & 4\left(\frac{1}{4}\right)(1-2s +2s^2) + 4w(1-w) s(1-s) + 2 (1 -2w +2w^2) s(1-s)\\
+& = & (1-2s +2s^2) + s(1-s)\left[4w -4w^2 + 2 -4w +4w^2\right]\\
+& = & 1-2s +2s^2 + 2s(1-s)\\
+& = & 1-2s +2s^2 + 2s- 2s^2\\
+& = & 1
+\end{eqnarray*}
+which should be the case because probability of all of the distinct events should add up to 1.
+
+
+\bibliography{phylo}
+\end{document}  
