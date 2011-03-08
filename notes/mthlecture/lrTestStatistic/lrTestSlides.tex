@@ -76,6 +76,7 @@
 
 \usepackage{pdfpages}
 
+\renewcommand{\Pr}{{\mathbb P}}
 
 
 \newcommand{\section}{\secdef \newsection\newsection}
@@ -166,6 +167,248 @@ Pair \# & bout 1 & bout 2 \\
 What can we say about $w$?
 
 
+\myNewSlide
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{ll}
+\multicolumn{2}{c}{$X$}\\
+\\
+$x_1 = 1$ & $x_{11} = 1$  \\
+$x_2 = 1$ & $x_{12} = 0$  \\
+$x_3 = 0$ & $x_{13} = 1$  \\
+$x_4 = 1$ & $x_{14} = 1$  \\
+$x_5 = 0$ & $x_{15} = 0$  \\
+$x_6 = 0$ & $x_{16} = 1$  \\
+$x_7 = 1$ & $x_{17} = 1$  \\
+$x_8 = 0$ & $x_{18} = 0$  \\
+$x_9 = 1$ & $x_{19} = 0$  \\
+$x_{10} = 1$ & $x_{20} = 1$  \\
+\end{tabular}
+\end{center}
+
+$$L(w) = \prod_{i=1}^{20} \Pr(x_i|w)$$
+
+
+\myNewSlide
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{ll}
+\multicolumn{2}{c}{$X$}\\
+\\
+$x_1 = 1$ & $x_{11} = 1$  \\
+$x_2 = 1$ & $x_{12} = 0$  \\
+$x_3 = 0$ & $x_{13} = 1$  \\
+$x_4 = 1$ & $x_{14} = 1$  \\
+$x_5 = 0$ & $x_{15} = 0$  \\
+$x_6 = 0$ & $x_{16} = 1$  \\
+$x_7 = 1$ & $x_{17} = 1$  \\
+$x_8 = 0$ & $x_{18} = 0$  \\
+$x_9 = 1$ & $x_{19} = 0$  \\
+$x_{10} = 1$ & $x_{20} = 1$  \\
+\end{tabular}
+\end{center}
+
+$$\Pr(x_{11} = 1 | x_{1} = 1, w) \neq \Pr(x_{11} = 1$$
+
+$$L(w) = \prod_{i=1}^{10} \Pr(x_i|w)\Pr(x_{10+i}|x_{i}, w)$$
+
+
+\myNewSlide
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{l}
+$Y$\\
+\\
+$y_1 = (1, 1)$   \\
+$y_2 = (1, 0)$  \\
+$y_3 = (0, 1)$  \\
+$y_4 = (1, 1)$  \\
+$y_5 = (0, 0)$  \\
+$y_6 = (0, 1)$  \\
+$y_7 = (1, 1)$  \\
+$y_8 = (0, 0)$  \\
+$y_9 = (1, 0)$  \\
+$y_{10} = (1, 1)$  \\
+\end{tabular}
+\end{center}
+
+
+$$L(w) = \prod_{i=1}^{10} \Pr(y_i|w)$$
+
+
+\myNewSlide
+0 = same ram wins both bouts\\
+1 = different rams win\\
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{l}
+$Z$\\
+\\
+$z_1 = 0$   \\
+$z_2 = 1$  \\
+$z_3 = 1$  \\
+$z_4 = 0$  \\
+$z_5 = 0$  \\
+$z_6 = 1$  \\
+$z_7 = 0$  \\
+$z_8 = 0$  \\
+$z_9 = 1$  \\
+$z_{10} = 0$  \\
+\end{tabular}
+\end{center}
+
+
+$$L(w) = \prod_{i=1}^{10} \Pr(z_i|w)$$
+
+
+\myNewSlide
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{l}
+$Z$\\
+\\
+$z_1 = 0$   \\
+$z_2 = 1$  \\
+$z_3 = 1$  \\
+$z_4 = 0$  \\
+$z_5 = 0$  \\
+$z_6 = 1$  \\
+$z_7 = 0$  \\
+$z_8 = 0$  \\
+$z_9 = 1$  \\
+$z_{10} = 0$  \\
+\end{tabular}
+\end{center}
+
+
+$$L(w) = \prod_{i=1}^{10} \Pr(z_i|w)$$
+$$ A = \sum_{i=1}^{10}z_i = 4$$
+$$L(w) = \Pr(Z=0|w)^{(n-A)}\Pr(Z=1|w)^{A}$$
 \end{document}
 
 \begin{center}

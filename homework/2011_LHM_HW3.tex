@@ -23,7 +23,7 @@
 % Use the natbib package for the bibliography
 \usepackage[round]{natbib}
 \bibliographystyle{apalike}
-\newcommand{\exampleMacro}[1]{\mu_{#1}}
+\newcommand{\answer}[1]{{\color{red}\sc Begin Answer:\\}#1{\par\color{red}\sc End Answer.\\}}
 
 \title{Brief Article}
 \author{The Author}
@@ -37,21 +37,53 @@
 	{\bf BIOL 701  Likelihood Methods in Biology: Homework \#3}\\
 	{Due Wednesday, March 9} 
 \end{center}
-1. Radioactive decay is a classic ``Poisson process''.  The number of alpha particles emitted from a sample of radioactive material during a fixed unit of time follows the Poisson distribution:$$\Pr(X=k) = \frac{e^{-\lambda}\lambda^k}{k!}$$where $X$ is the number of particles emitted (the random variable), $k$ is a particular value of $X$, and $\lambda$ is the mean emission rate (which depends on the amount and type of radioactive material).
+1. Radioactive decay is a classic ``Poisson process''.  The number of alpha particles emitted from a sample of radioactive material during a fixed unit of time follows the Poisson distribution:
+$$\Pr(X=k) = \frac{e^{-\lambda}\lambda^k}{k!}$$
+where $X$ is the number of particles emitted (the random variable), $k$ is a particular value of $X$, and $\lambda$ is the mean emission rate (which depends on the amount and type of radioactive material).
 We use an alpha particle detector to investigate an unknown material.  The number of particles detected per minute is recorded for 20 distinct, 1-minute time intervals (see Table 1).  
-Use the likelihood ratio method to test the hypothesis that the mean emission rate, $\lambda$ = 2.\begin{table}[htdp]
+Use the likelihood ratio method to test the hypothesis that the mean emission rate, $\lambda$ = 2.
+\begin{table}[htdp]
 \begin{center}
 \begin{tabular}{c|cp{1in}c|c}
 \hline
-Interval	I.D. & Particles detected & & Interval	I.D. & Particles detected \\\hline
-1	& 3 & & 11	& 1 \\2	& 2 & & 12	& 3 \\3	& 2 & & 13	& 1 \\4	& 5 & & 14	& 4 \\5	& 4 & & 15	& 5 \\6	& 6 & & 16	& 4 \\7	& 1 & & 17	& 1 \\8	& 1 & & 18	& 2 \\9	& 3 & & 19	& 0 \\10	& 0 & & 20	& 4 \\\hline
+Interval	I.D. & Particles detected & & Interval	I.D. & Particles detected \\
+\hline
+1	& 3 & & 11	& 1 \\
+2	& 2 & & 12	& 3 \\
+3	& 2 & & 13	& 1 \\
+4	& 5 & & 14	& 4 \\
+5	& 4 & & 15	& 5 \\
+6	& 6 & & 16	& 4 \\
+7	& 1 & & 17	& 1 \\
+8	& 1 & & 18	& 2 \\
+9	& 3 & & 19	& 0 \\
+10	& 0 & & 20	& 4 \\
+\hline
 \end{tabular}
 \end{center}
 \label{default}
-\end{table}\\
-
-See problem \#2 on the next page.
+\end{table}
 \newpage
+\answer{
+\begin{eqnarray*}
+	L(\lambda) & = & \Pr(X|\lambda) \\
+		& = & \prod_{i=1}^{n}\frac{e^{-\lambda}\lambda^{x_i}}{x_i!} \\
+	\ln L(\lambda) & = & \sum_{i=1}^{n}\ln\left(\frac{e^{-\lambda}\lambda^{x_i}}{x_i!}\right) \\
+	& = & \sum_{i=1}^{n}\left[\ln \left(e^{-\lambda}\right) + \ln \left(\lambda^{x_i}\right) - \ln \left(x_i!\right)\right] \\
+	& = & \sum_{i=1}^{n}\left[-\lambda + {x_i}\ln \left(\lambda\right) - \ln \left(x_i!\right)\right] \\
+	\frac{d \ln L(\lambda)}{d \lambda} & = & \sum_{i=1}^{n}\left[-1 + \frac{x_i}{\lambda}\right] \\
+	& = & -n + \frac{\sum_{i=1}^{n}x_i}{\lambda} \\
+	-n + \frac{\sum_{i=1}^{n}x_i}{\hat\lambda} & = & 0 \\
+	\hat\lambda & = & \frac{\sum_{i=1}^{n}x_i}{n} = \bar x = 2.6 \\
+	\ln L(\lambda = 2 ) & = & -40.27\\
+	\ln L(\lambda = 2.6 ) & = & -38.63 \\
+	2 \left[\ln L(\lambda = 2 ) - \ln L(\lambda = 2.6 )\right] & = &  -3.29
+\end{eqnarray*}
+}
+This is not significant.  So we cannot reject the null that $\lambda = 2$.
+\newpage
+
+
 2. You are interested in estimating the selfing rate for an annual plant.  You have a molecular marker with two alleles (`A' and `a'). You have access to seeds that you can assume are in Hardy-Weinberg equilibrium (let's say that your seed bank was created by artificially pollinating plants selected at random from within a large population)\footnote{Recall that Hardy-Weinberg equilibrium assumes random mating and predicts genotypic frequencies to be $p^2$ for the homozygote genotype of an allele that occurs at frequency $p$. Heterozygotes containing that allele should occur at frequency $2p(1-p)$.}.  You grow the seeds in a field, allow the resulting plants to either self or outcross according to their own inclination, and then you genotype the offspring.
 The genotypic numbers that you observe in the offspring are $n_{AA} = 186$, $n_{Aa} = 228$, and $n_{aa} = 86$.
 
@@ -60,7 +92,35 @@ You would like to estimate the frequency of selfing in your experimental populat
 \begin{compactenum}
 	\item[{\bf Part 1:}] Write down the log likelihood as a function of the variables $n_{AA}, n_{Aa}, n_{aa}, s,$ and $p_A$ (don't put the actual numbers in, use the variables).
 \end{compactenum}
-
+\answer{
+Let $h_i$ denote the genotype of the mother of individual $i$ (we could have chosen the father - we just want to specify one of the parents), and $g_i$ denote the genotype of individual $i$:
+\begin{eqnarray*}
+	\Pr(h_i = \mbox{AA}) & = & p_A^2 \\
+	\Pr(h_i = \mbox{Aa}) & = & 2p_A - 2p_A^2 \\
+	\Pr(h_i = \mbox{aa}) & = & (1-p_A)^2 \\
+	\Pr(g_i = \mbox{AA}) & = & \Pr(g_i=\mbox{AA}| \mbox{selfed})\Pr(\mbox{selfed}) + \Pr(g_i=\mbox{AA}| \mbox{outcrossed})\Pr(\mbox{outcrossed}) \\
+					    & = & \Pr(g_i=\mbox{AA}| \mbox{selfed})s + \Pr(g_i=\mbox{AA}| \mbox{outcrossed})(1-s) \\
+	\Pr(g_i=\mbox{AA}| \mbox{selfed}) & = & \Pr(g_i=\mbox{AA}| \mbox{selfed},h_i=\mbox{AA})\Pr(h_i=\mbox{AA}) + \Pr(g_i=\mbox{AA}| \mbox{selfed},h_i=\mbox{Aa})\Pr(h_i=\mbox{Aa}) + \ldots \\
+		& & \ldots + \Pr(g_i=\mbox{AA}| \mbox{selfed},h_i=\mbox{aa})\Pr(h_i=\mbox{aa}) \\
+		 & = & 1 \left(p_A^2\right) + \left(\frac{1}{4}\right)\left(2p_A - 2p_A^2\right) + 0 \left[(1-p_A)^2\right] \\
+		 & = & \frac{p_A +p_A^2}{2}\\
+	\Pr(g_i=\mbox{Aa}| \mbox{selfed}) & = & 0 \left(p_A^2\right) + \left(\frac{1}{2}\right)\left(2p_A - 2p_A^2\right) + 0 \left[(1-p_A)^2\right] \\
+	& = & p_A - p_A^2 \\
+\Pr(g_i=\mbox{aa}| \mbox{selfed}) & = & 0 \left(p_A^2\right) + \left(\frac{1}{4}\right)\left(2p_A - 2p_A^2\right) + 1 \left[(1-p_A)^2\right] \\
+	& = & \frac{p_A-p_A^2 + 2(1-p_A)^2}{2} \\
+	& = & \frac{2 - 3p_A + p_A^2}{2} \\
+\Pr(g_i=\mbox{AA}| \mbox{not selfed}) & = & p_A^2 \\
+\Pr(g_i=\mbox{Aa}| \mbox{not selfed}) & = & 2p_A - 2p_A^2 \\
+\Pr(g_i=\mbox{aa}| \mbox{not selfed}) & = & (1-p_A)^2 \\
+	\Pr(g_i = \mbox{AA}) & = & \frac{s(p_A +p_A^2)}{2} + (1-s)p_A^2\\
+	 & = & \frac{s p_A}{2} + \frac{sp_A^2}{2} + (1-s)p_A^2\\
+	  & = & p_A\left[\frac{s}{2} - \frac{sp_A}{2} + p_A\right]\\
+\Pr(g_i=\mbox{Aa}) & = & (p_A - p_A^2)s + (2p_A - 2p_A^2)(1-s) \\
+\Pr(g_i=\mbox{aa}) & = & \left(\frac{2 - 3p_A + p_A^2}{2}\right)s + (1-p_A)^2(1-s) \\
+\ln L (s, p_A) & = &  n_{AA}\ln\left[p_A\left(\frac{s}{2} - \frac{sp_A}{2} + p_A\right)\right] + n_{Aa}\ln\left[(p_A - p_A^2)s + (2p_A - 2p_A^2)(1-s)\right] + \ldots \\
+ & & \ldots + n_{aa}\ln\left[\left(\frac{2 - 3p_A + p_A^2}{2}\right)s + (1-p_A)^2(1-s)\right]
+\end{eqnarray*}
+}
 Hint: You should assume Hardy-Weinberg genotypic frequencies for the parental generation, but the offspring are only expected to be in Hardy-Weinberg genotypic frequencies if the selfing rate is 0.
 
 
@@ -70,14 +130,69 @@ The math is very tedious in this case.  So, I am going to tell you that the glob
 \begin{compactenum}
 	\item[{\bf Part 2:}] Solve for the MLE of $\hat s$ given this knowledge.  Start  by substituting the values from the real data and the value of $\hat p_A=0.6$ into your equation for the log-likelihood. Then find the maximum likelihood value of $\hat s$.  This will involve a bit of tedious math, and using the quadratic equation.
 \end{compactenum}
+\answer{
+By substituting:
+\begin{eqnarray*}
+	\ln L (s, p_A=0.6) & =  & 186\ln\left[0.6\left(\frac{s}{2} - \frac{s(0.6)}{2} + 0.6\right)\right] + 228\ln\left[(0.6 - 0.6^2)s + (1.2  - 2(0.6^2))(1-s)\right] + \ldots \\
+ & & \ldots + 86\ln\left[\left(\frac{2 - 3(0.6) + 0.6^2}{2}\right)s + 0.4^2(1-s)\right] \\
+ & =  & 186\ln\left[\frac{3(3+s)}{25}\right] + 228\ln\left[\frac{6(2-s)}{25}\right] +  86\ln\left[\frac{4 + 3s}{25}\right]\\
+ & =  & 186\ln\left[3(3+s)\right] + 228\ln\left[6(2-s)\right] +  86\ln\left[4 + 3s\right] - 500 \ln[25] \\
+ \frac{\partial L (s, p_A=0.6)}{\partial s} & = & \frac{186(3)}{3(3+s)} + \frac{228(-6)}{6(2-s)} + \frac{86(3)}{4 + 3s} \\
+ & = & \frac{186}{3+s} - \frac{228}{2-s} + \frac{258}{4 + 3s} \\
+\end{eqnarray*}
+\begin{eqnarray*}
+\frac{186}{3 + \hat s} - \frac{228}{2 - \hat s} + \frac{258}{4 + 3\hat s} & = & 0 \\
+186(2 - \hat s)(4 + 3\hat s) - 228(3 + \hat s)(4 + 3\hat s) + 258(2 - \hat s)(3 + \hat s) & = & 0 \\
+6\left[31(2 - \hat s)(4 + 3\hat s) - 38(3 + \hat s)(4 + 3\hat s) + 43(2 - \hat s)(3 + \hat s)\right] & = & 0 \\
+150 (-2 + 19 \hat s + 10 \hat s^2) & = & 0
+\end{eqnarray*}
+Recall by the quadratic equation that the roots of:
+$$ aN^2 + bN + c = 0 $$
+are
+$$ \frac{-b \pm \sqrt{b^2-4ac}}{2a}$$
+In this case $a=10$, $b=19$, and $c=-2$, so:
+\begin{eqnarray*}
+	\hat s & = &2.0 \\
+	\hat s & = & 0.1
+\end{eqnarray*}
+The first solution is illegal (because $0\leq s \leq 1$).
+}
+
+
+
 
 Suppose you are interested in testing the hypothesis that the selfing rate is 0.
 \begin{compactenum}
 	\item[{\bf Part 3:}] Solve for the MLE of $p$ given the real data and the value of $s = 0$.
+\answer{
+\begin{eqnarray*}
+\ln L (s, p_A) & = &  n_{AA}\ln\left[p_A\left(\frac{s}{2} - \frac{sp_A}{2} + p_A\right)\right] + n_{Aa}\ln\left[(p_A - p_A^2)s + (2p_A - 2p_A^2)(1-s)\right] + \ldots \\
+ & & \ldots + n_{aa}\ln\left[\left(\frac{2 - 3p_A + p_A^2}{2}\right)s + (1-p_A)^2(1-s)\right] \\
+\ln L (s=0, p_A) & = &   n_{AA}\ln\left[p_A^2\right] + n_{Aa}\ln\left[2p_A - 2p_A^2\right] + n_{aa}\ln\left[(1-p_A)^2\right] \\
+\frac{\partial\ln L (s=0, p_A)}{\partial p_A} & = &  \frac{n_{AA}2p_A}{p_A^2} + \frac{n_{Aa}(2-4p_A)}{2p_A - 2p_A^2} + \frac{n_{aa}(2)(1-p_A)(-1)}{(1-p_A)^2}\\
+& = &  \frac{2n_{AA}}{p_A} + \frac{n_{Aa}(1-2p_A)}{p_A - p_A^2} - \frac{2n_{aa}}{(1-p_A)}\\
+& = &  \frac{2n_{AA}(1-p_A) + n_{Aa}(1-2p_A)- 2n_{aa}p_A}{p_A - p_A^2}\\
+& = &  \frac{2n_{AA} + n_{Aa} -2p_A (n_{AA} + n_{Aa} + n_{aa})}{p_A - p_A^2}\\
+0 & = &  \frac{2n_{AA} + n_{Aa} -2\hat p_A (n_{AA} + n_{Aa} + n_{aa})}{\hat p_A - \hat p_A^2}\\
+0 & = &  2n_{AA} + n_{Aa} -2\hat p_A (n_{AA} + n_{Aa} + n_{aa})\\
+\hat p & = &  \frac{2n_{AA} + n_{Aa}}{2(n_{AA} + n_{Aa} + n_{aa})} \\
+	& = & 0.6\\
+\ln L (s=0, p_A=.6) & = & -514.974
+\end{eqnarray*}
+}
 	\item[{\bf Part 4:}] Calculate the log likelihoods for the hypothesis that $s=0$ and  for the global maximum likelihood point.
+\answer{
+\begin{eqnarray*}
+	\ln L (\hat s=0.1, p_A=0.6)& = & -514.35 \\
+	\ln L (s=0, p_A=.6) & = & -514.974
+\end{eqnarray*}
+}
 	\item[{\bf Part 5:}] Can you reject a null hypothesis that $s=0$?
+\answer{
+No.
+}
 \end{compactenum}
 
 
 \end{document}  
-
+

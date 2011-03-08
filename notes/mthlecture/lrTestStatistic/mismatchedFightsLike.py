@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+from scipy import optimize
+import sys
+import math
+import random
 def calc_prob_same(prob_strong, w):
     assert (prob_strong >= 0.0)
     assert (prob_strong <= 1.0)
@@ -74,10 +78,8 @@ def simulate_data(s, w, n):
     return ns, nd
 
 if __name__ == '__main__':
-    from scipy import optimize
-    import sys
-    import math
-    import random
+    # user-interface and sanity checking...
+    print_estimates = False
     
     num_same = int(sys.argv[1])
     num_diff = int(sys.argv[2])
@@ -87,31 +89,49 @@ if __name__ == '__main__':
     if num_diff < 0 or num_same < 0:
         sys.exit("The number of bouts won by the same or different individuals must be non-negative")
     
+    
+    
+    # Calculate and report the MLEs and LRT...
+    
+    print
     print num_same, 'trials in which the same individual wins both bouts.'
     print num_diff, 'trials in which different individuals wins each bout.'
+    print
 
     prob_strong_MLE, w_MLE, lnL = estimate_global_MLE(num_same, num_diff)
+
     print "MLE of prob_strong =", prob_strong_MLE
     print "MLE of w =", w_MLE
     print "lnL at MLEs =", lnL
     print "L at MLEs =", math.exp(lnL)
+    print
 
     prob_strong_null, lnL_null = maximize_lnL_fixed_w(num_same, num_diff, w_null)
+
     print "MLE of prob_strong at null w =", prob_strong_null
     print "null of w =", w_null
     print "lnL at null =", lnL_null
     print "L at null =", math.exp(lnL_null)
+    print
     
     lrt = 2*(lnL_null - lnL)
-    print "2* log-likelihood ratio = ", lrt
 
+    print "2* log-likelihood ratio = ", lrt
+    print
+
+
+
+    # Parametric bootstrapping to produce the null distribution of the LRT statistic
     if num_sims < 1:
         sys.exit(0)
         
     print "Generating null distribution of LRT..."
     n = num_same + num_diff
 
-    sys.stderr.write("rep\ts_hat\tw_hat\tnull_s_hat\tlrt\n")
+    sys.stderr.write("rep\t")
+    if print_estimates:
+        sys.stderr.write("s_hat\tw_hat\tnull_s_hat\t")
+    sys.stderr.write("lrt\n")
     null_dist = []
     for i in range(num_sims):
         sim_n_same, sim_n_diff = simulate_data(prob_strong_null, w_null, n)
@@ -123,12 +143,13 @@ if __name__ == '__main__':
 
         sys.stderr.write(str(i + 1))
         sys.stderr.write('\t')
-        sys.stderr.write(str(sim_s_mle))
-        sys.stderr.write('\t')
-        sys.stderr.write(str(sim_w_mle))
-        sys.stderr.write('\t')
-        sys.stderr.write(str(sim_s_null))
-        sys.stderr.write('\t')
+        if print_estimates:
+            sys.stderr.write(str(sim_s_mle))
+            sys.stderr.write('\t')
+            sys.stderr.write(str(sim_w_mle))
+            sys.stderr.write('\t')
+            sys.stderr.write(str(sim_s_null))
+            sys.stderr.write('\t')
         sys.stderr.write(str(sim_lrt))
         sys.stderr.write('\n')
     
