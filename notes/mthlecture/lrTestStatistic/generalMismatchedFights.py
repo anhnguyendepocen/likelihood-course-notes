@@ -85,31 +85,55 @@ def maximize_lnL_fixed_w(w):
     param_opt = optimize.fmin(f, x0, xtol=1e-8, disp=False)
     return param_opt[0], -f(param_opt)
 
-def simulate_data(s, w, n):
-    ns = 0
-    nd = 0
-    prob_same_given_mismatch = w*w + (1-w)*(1-w)
-    for i in range(n):
-        if random.random() < s:
-            zero_strong = True
-        else:
-            zero_strong = False
-        if random.random() < s:
-            one_strong = True
-        else:
-            one_strong = False
+def simulate_data(s, w):
+    global real_data
+    template_data = real_data
 
-        if one_strong == zero_strong:
-            if random.random() < 0.5:
-                ns = ns + 1
-            else:
-                nd = nd + 1
+    prob_SS = s*s
+    prob_SW = s*(1-s)
+    prob_WS = (1-s)*s
+    prob_WW = (1-s)*(1 - s)
+    prob_even = prob_SS + prob_WW
+    
+    
+    sim_data_set = []
+
+    for datum in template_data:
+        num_bouts = sum(datum)
+        
+        # randomly pick the type of pairing the we have 'EVEN', 'SW' or 'WS'
+        rand_match_p = random.random()
+        if rand_match_p < prob_even:
+            match_type = 'EVEN'
         else:
-            if random.random() < prob_same_given_mismatch:
-                ns = ns + 1
+            if rand_match_p < prob_even + prob_SW:
+                match_type = 'SW'
             else:
-                nd = nd + 1
-    return ns, nd
+                match_type = 'WS'
+        
+        # determine the probability that male 0 wins each bout.        
+        if match_type == 'EVEN':
+            prob_zero_wins = 0.5
+        if match_type == 'WS':
+            prob_zero_wins = w
+        if match_type == 'SW':
+            prob_zero_wins = 1 - w
+        
+        # start out with no bouts won by either, then we are going to 
+        #   simulate the result of num_bouts
+        n0_won = 0
+        n1_won = 0
+        for bout in range(num_bouts):
+            if random.random() < prob_zero_wins:
+                n0_won = n0_won + 1
+            else:
+                n1_won = n1_won + 1
+        
+        # add this simulated outcome to our simulated data set
+        sim_datum = (n0_won, n1_won)
+        sim_data_set.append(sim_datum)
+
+    return sim_data_set
 
 if __name__ == '__main__':
     # user-interface and sanity checking...
@@ -146,19 +170,21 @@ if __name__ == '__main__':
     # Parametric bootstrapping to produce the null distribution of the LRT statistic
     if num_sims < 1:
         sys.exit(0)
-    sys.exit("pboot not written")
-    print "Generating null distribution of LRT..."
-    n = num_same + num_diff
 
+
+    print "Generating null distribution of LRT..."
     sys.stderr.write("rep\t")
     if print_estimates:
         sys.stderr.write("s_hat\tw_hat\tnull_s_hat\t")
     sys.stderr.write("lrt\n")
     null_dist = []
     for i in range(num_sims):
-        sim_n_same, sim_n_diff = simulate_data(prob_strong_null, w_null, n)
-        sim_s_mle, sim_w_mle, sim_max_lnL = estimate_global_MLE(sim_n_same, sim_n_diff)
-        sim_s_null, sim_lnL_null = maximize_lnL_fixed_w(sim_n_same, sim_n_diff, w_null)
+        sim_data = simulate_data(prob_strong_null, w_null)
+        
+        # Update the global variable "the_data" to reflect the simulation
+        the_data = sim_data
+        sim_s_mle, sim_w_mle, sim_max_lnL = estimate_global_MLE()
+        sim_s_null, sim_lnL_null = maximize_lnL_fixed_w(w_null)
         sim_lrt = 2*(sim_lnL_null - sim_max_lnL)
 
         null_dist.append(sim_lrt)
