@@ -1,16 +1,16 @@
 #!/usr/bin/env python
+
 from scipy import optimize
-import sys
-import math
-import random
+from math import pow, log, exp
+from random import random
 
 
 # we are going to use a summary that is a pair of numbers for each pair of males
-#   it will represent: 
+#   it will represent:
 #    (the number of bouts won by male 0, the number of bouts won by male 1)
 
 
-real_data = [ (0, 2),
+real_data = [(0, 2),
               (1, 1),
               (1, 1),
               (0, 2),
@@ -24,41 +24,57 @@ real_data = [ (0, 2),
 
 ## Data from 5 sampling schemes: 2 bouts/pair, 3 bouts/pair, ... 7 bouts/pair
 ##  for each sampling scheme we have 20 observations
-#  real_data = [(0, 2), (0, 2), (0, 2), (0, 2), (0, 2), (2, 0), (2, 0), (2, 0), (1, 1), (0, 2), 
-#               (0, 2), (2, 0), (0, 2), (1, 1), (1, 1), (2, 0), (0, 2), (1, 1), (1, 1), (1, 1), 
-#               (3, 0), (2, 1), (0, 3), (1, 2), (1, 2), (0, 3), (0, 3), (2, 1), (0, 3), (1, 2), 
-#               (2, 1), (1, 2), (2, 1), (1, 2), (1, 2), (2, 1), (2, 1), (2, 1), (0, 3), (1, 2), 
+#  real_data = [(0, 2), (0, 2), (0, 2), (0, 2), (0, 2), (2, 0), (2, 0), (2, 0), (1, 1), (0, 2),
+#               (0, 2), (2, 0), (0, 2), (1, 1), (1, 1), (2, 0), (0, 2), (1, 1), (1, 1), (1, 1),
+#               (3, 0), (2, 1), (0, 3), (1, 2), (1, 2), (0, 3), (0, 3), (2, 1), (0, 3), (1, 2),
+#               (2, 1), (1, 2), (2, 1), (1, 2), (1, 2), (2, 1), (2, 1), (2, 1), (0, 3), (1, 2),
 #               (0, 4), (3, 1), (0, 4), (3, 1), (1, 3), (2, 2), (1, 3), (4, 0), (1, 3), (2, 2),
 #               (1, 3), (3, 1), (0, 4), (2, 2), (1, 3), (0, 4), (1, 3), (4, 0), (2, 2), (3, 1),
 #               (2, 3), (4, 1), (4, 1), (4, 1), (2, 3), (2, 3), (2, 3), (0, 5), (1, 4), (2, 3),
 #               (4, 1), (4, 1), (5, 0), (1, 4), (1, 4), (2, 3), (3, 2), (2, 3), (2, 3), (5, 0),
-#               (3, 3), (1, 5), (0, 6), (4, 2), (4, 2), (4, 2), (0, 6), (4, 2), (1, 5), (3, 3), 
+#               (3, 3), (1, 5), (0, 6), (4, 2), (4, 2), (4, 2), (0, 6), (4, 2), (1, 5), (3, 3),
 #               (1, 5), (3, 3), (4, 2), (5, 1), (3, 3), (2, 4), (1, 5), (5, 1), (5, 1), (3, 3),
 #               (4, 3), (7, 0), (6, 1), (6, 1), (3, 4), (3, 4), (4, 3), (1, 6), (4, 3), (5, 2),
 #               (2, 5), (3, 4), (2, 5), (4, 3), (4, 3), (4, 3), (4, 3), (4, 3), (2, 5), (1, 6)]
 
-def ln_likelihood(prob_strong, w):
-    '''Calculates the log-likelihood of the parameter value {prob_strong, w}
-    based on the_data (which is a "global" variable).
+############################################################################
+# Begin model-specific initialization code
+############################################################################
+# This is a list of values to try for the numerical optimizer.  The length of 
+#   this list is also used by some functions to determine the dimensionality
+#   of the model
+INITIAL_PARAMETER_GUESS = [.75, .75]
+############################################################################
+# End model-specific initialization code
+############################################################################
+
+
+def ln_likelihood(the_data, param_list):
+    '''Calculates the log-likelihood of the parameter values in `param_list`
+    based on `the_data`
     '''
-    global the_data
+    ############################################################################
+    # Begin model-specific log-likelihood code
+    ############################################################################
+
+    p_strong, w = param_list
     ###########################################################################
     # Return -inf if the parameters are out of range.  This will keep the optimizer
     #  from returning "illegal" values of the parameters.
     #
-    if w != w or prob_strong != prob_strong:
+    if w != w or p_strong != p_strong:
         return float('-inf')
-    if (w < .5) or (w > 1.0) or (prob_strong < 0.0) or (prob_strong > 1.0):
+    if (w < .5) or (w > 1.0) or (p_strong < 0.0) or (p_strong > 1.0):
         return float('-inf')
-    
-    prob_SS = prob_strong*prob_strong
-    prob_SW = prob_strong*(1 - prob_strong)
-    prob_WS = prob_SW
-    prob_WW = (1-prob_strong)*(1 - prob_strong)
+
+    p_SS = p_strong * p_strong
+    p_SW = p_strong * (1 - p_strong)
+    p_WS = p_SW
+    p_WW = (1-p_strong)*(1 - p_strong)
 
     # Calculate the probability that the males are evenly matched
     #
-    prob_even = prob_WW + prob_SS
+    p_even = p_WW + p_SS
 
     # Calculate the probability of an outcome of a bout (0 or 1) conditional
     #    on what type of pairing we have:
@@ -77,157 +93,245 @@ def ln_likelihood(prob_strong, w):
     #
     ln_l = 0.0
     for datum in the_data:
-        # Each datum is a count of the number of bouts won by male 0 (the 0-th element
-        #   of the datum object), and the number of bouts won by male #1 (the element
-        #   of the datum object at index 1).
+        # Each datum is a count of the number of bouts won by male 0 (the 0-th
+        #   element of the datum object), and the number of bouts won by
+        #   male #1 (the element of the datum object at index 1).
         #
-        num0_wins = datum[0]
-        num1_wins  = datum[1]
-        
+        n0_wins = datum[0]
+        n1_wins  = datum[1]
+
         # Now we calculate the probability of seeing the data conditional on
         #   each of the pairing scenarios  (even, strong/weak, and weak/strong).
         #
-        prob_datum_if_even = (prob0_even**num0_wins) * (prob1_even**num1_wins)
-        prob_datum_if_SW = (prob0_SW**num0_wins) * (prob1_SW**num1_wins)
-        prob_datum_if_WS = (prob0_WS**num0_wins) * (prob1_WS**num1_wins)
+        p_datum_if_even = pow(prob0_even, n0_wins) * pow(prob1_even, n1_wins)
+        p_datum_if_SW = pow(prob0_SW, n0_wins) * pow(prob1_SW, n1_wins)
+        p_datum_if_WS = pow(prob0_WS, n0_wins) * pow(prob1_WS, n1_wins)
 
         # By the law of total probability, the probability of this datum is
         #   simply the sum of the probability under each scenario multiplied by
         #   the probability that the scenario would occur
         #
-        prob_datum = (  prob_even*prob_datum_if_even
-                      + prob_SW*prob_datum_if_SW
-                      + prob_WS*prob_datum_if_WS )
+        p_datum = (p_even*p_datum_if_even
+                   + p_SW*p_datum_if_SW
+                   + p_WS*p_datum_if_WS )
 
-        # To avoid taking the log of 0.0, we'll return -infinity for the 
+        # To avoid taking the log of 0.0, we'll return -infinity for the
         #   log-likelihood of any scenario that is incompatible with a datum
         #
-        if prob_datum <= 0.0:
+        if p_datum <= 0.0:
             return float('-inf')
 
         # This is where we add the log-likelihood for this datum to the total
         #   for the whole data set.
         #
-        ln_l = ln_l + math.log(prob_datum)
+        ln_l = ln_l + log(p_datum)
 
     # This is how we send the result back to the function that called this
     #   function.  SciPy's numerical optimization code will use the values
-    #   we return to try to find optimal values of prob_strong and w by
+    #   we return to try to find optimal values of p_strong and w by
     #   repeatedly trying out a lot of plausible combinations.
     #
     return ln_l
+    ############################################################################
+    # End model-specific log-likelihood code
+    ############################################################################
 
-def scipy_ln_likelihood(x):
-    '''SciPy minimizes functions. We want to maximize the likelihood. This 
-    function adapts our ln_likelihood function to the minimization context
-    by returning the negative log-likelihood.
 
-    We use this function with SciPy's minimization routine (minimizing the 
-    negative log-likelihood will maximize the log-likelihood).
+def simulate_data(template_data, params):
+    '''Simulate a data set of the same size as `template_data` but under a 
+    model described by the parameter values in `params`
     '''
-    raw = ln_likelihood(x[0], x[1])
-    return -raw
+    ############################################################################
+    # Begin model-specific simulation code
+    ############################################################################
+    # For our model the params are s and w, so we can unpack those from 
+    #   the list of parameters
+    s, w = params
 
-def estimate_global_MLE():
-    '''Uses SciPy's  optimize.fmin to find the MLE. Starts the search at
-    s = 0.75, and w = 0.75
+    p_SS = s*s
+    p_SW = s*(1 - s)
+    p_WS = (1 - s)*s
+    p_WW = (1 - s)*(1 - s)
+    p_even = p_SS + p_WW
 
-    Returns the (s_mle, w_mle, ln_L)
-    '''
-    x0 = [.75, .75]
-    param = optimize.fmin(scipy_ln_likelihood, x0, xtol=1e-8, disp=False)
-    return param[0], param[1], -scipy_ln_likelihood(param)
 
-def maximize_lnL_fixed_w(w):
-    '''This function allows us to optimize prob_strong while keeping
-    w fixed.
-    '''
-    x0 = [.75]
-    def one_param_ln_likelihood(x):
-        return scipy_ln_likelihood([x[0], w])
-    param = optimize.fmin(one_param_ln_likelihood, x0, xtol=1e-8, disp=False)
-    return param[0], -one_param_ln_likelihood(param)
-
-def simulate_data(s, w):
-    global real_data
-    template_data = real_data
-
-    prob_SS = s*s
-    prob_SW = s*(1 - s)
-    prob_WS = (1 - s)*s
-    prob_WW = (1 - s)*(1 - s)
-    prob_even = prob_SS + prob_WW
-    
-    
     sim_data_set = []
 
     for datum in template_data:
-        num_bouts = sum(datum)
-        
+        n_bouts = sum(datum)
+
         # randomly pick the type of pairing the we have 'EVEN', 'SW' or 'WS'
-        rand_match_p = random.random()
-        if rand_match_p < prob_even:
+        rand_match_p = random()
+        if rand_match_p < p_even:
             match_type = 'EVEN'
         else:
-            if rand_match_p < prob_even + prob_SW:
+            if rand_match_p < p_even + p_SW:
                 match_type = 'SW'
             else:
                 match_type = 'WS'
-        
-        # determine the probability that male 0 wins each bout.        
+
+        # determine the probability that male 0 wins each bout.
         if match_type == 'EVEN':
-            prob_zero_wins = 0.5
+            p_zero_wins = 0.5
         if match_type == 'WS':
-            prob_zero_wins = w
+            p_zero_wins = w
         if match_type == 'SW':
-            prob_zero_wins = 1 - w
-        
-        # start out with no bouts won by either, then we are going to 
-        #   simulate the result of num_bouts
+            p_zero_wins = 1 - w
+
+        # start out with no bouts won by either, then we are going to
+        #   simulate the result of n_bouts
         n0_won = 0
         n1_won = 0
-        for bout in range(num_bouts):
-            if random.random() < prob_zero_wins:
+        for bout in range(n_bouts):
+            if random() < p_zero_wins:
                 n0_won = n0_won + 1
             else:
                 n1_won = n1_won + 1
-        
+
         # add this simulated outcome to our simulated data set
         sim_datum = (n0_won, n1_won)
         sim_data_set.append(sim_datum)
 
     return sim_data_set
+    ############################################################################
+    # End model-specific simulation code
+    ############################################################################
 
+
+
+
+
+def calc_global_ml_solution(data):
+    '''Uses SciPy's  optimize.fmin to find the mle. Starts the search at
+    s = 0.75, and w = 0.75
+
+    Returns the (s_mle, w_mle, ln_L)
+    '''
+
+    def scipy_ln_likelihood(x):
+        '''SciPy minimizes functions. We want to maximize the likelihood. This
+        function adapts our ln_likelihood function to the minimization context
+        by returning the negative log-likelihood.
+    
+        We use this function with SciPy's minimization routine (minimizing the
+        negative log-likelihood will maximize the log-likelihood).
+        '''
+        return -ln_likelihood(data, x)
+
+    x0 = INITIAL_PARAMETER_GUESS
+    solution = optimize.fmin(scipy_ln_likelihood, x0, xtol=1e-8, disp=False)
+    solution = list(solution)
+    ln_l = -scipy_ln_likelihood(solution)
+    solution.append(ln_l)
+    return solution
+
+def calc_null_ml_solution(data, param_constraints):
+    '''This function allows us to optimize those parameters that are set to 
+    None in the list `param_constraints`. Other parameters are forced to assume
+    the value listed in param_constraints.
+    '''
+    x0 = []
+    adaptor_list = []
+    for i, val in enumerate(INITIAL_PARAMETER_GUESS):
+        if i >= len(param_constraints) or param_constraints[i] == None:
+            x0.append(val)
+            adaptor_list.append(None)
+        else:
+            adaptor_list.append(param_constraints[i])
+    
+    def intercalate_constraints(x):
+        p = []
+        x_index = 0
+        for el in adaptor_list:
+            if el is None:
+                p.append(x[x_index])
+                x_index = x_index + 1
+            else:
+                p.append(el)
+        return p
+        
+
+    def constrained_scipy_ln_likelihood(x):
+        all_params = intercalate_constraints(x)
+        return -ln_likelihood(data, all_params)
+        
+    if len(x0) > 0:
+        solution = optimize.fmin(constrained_scipy_ln_likelihood,
+                                 x0,
+                                 xtol=1e-8,
+                                 disp=False)
+        all_params =  all_params = intercalate_constraints(solution)
+    else:
+        all_params = list(param_constraints)
+    ln_l = ln_likelihood(data, all_params)
+    all_params = list(all_params)
+    all_params.append(ln_l)
+    return all_params
+
+
+
+
+def calc_lrt_statistic(data, null_params):
+    '''Returns (log-likelihood ratio test statistic,
+                list of MLEs of all parameters and lnL at the global ML point,
+                a list of the MLEs of all parameters and lnL under the null)
+        
+    for `data` with the null hypothesis being the parameters constrained
+    to be at the values specified in the list `null_params`
+    '''
+    # First we calculate the global and null solutions
+    #
+    global_mle = calc_global_ml_solution(data)
+    null_mle = calc_null_ml_solution(data, null_params)
+
+    # the log-likelihood is returned as the last element of the list by these
+    #   functions.  We can access this element by referring to element -1 using
+    #   the list indexing syntax - which is [] braces:
+    #
+    global_max_ln_l = global_mle[-1]
+    null_max_ln_l = null_mle[-1]
+
+    # Now we can calculate the likelihood ratio test statistic, and return
+    #   it as well as the global and null solutions
+    #
+    lrt = 2*(null_max_ln_l - global_max_ln_l)
+    return lrt, global_mle, null_mle
+    
+    
 if __name__ == '__main__':
     # user-interface and sanity checking...
-    the_data = real_data
+
+    # we 
+    import sys
+    
     w_null = float(sys.argv[1])
-    num_sims = int(sys.argv[2])
+    n_sims = int(sys.argv[2])
     
-    # Calculate and report the MLEs and log-likelihood.
+    # In my ln_likelihood, I decided that w will be the second parameter listed
     #
-    prob_strong_MLE, w_MLE, lnL = estimate_global_MLE()
+    null_params = [None, w_null]
+    
+    # Call a function to maximize the log-likelihood under the unconstrained
+    #   and null conditions.  This returns the LRT statistic and the 
+    #   parameter estimates as lists
+    #
+    lrt, mle_list, null_mle_list = calc_lrt_statistic(real_data, null_params)
 
-    print "MLE of prob_strong =", prob_strong_MLE
-    print "MLE of w =", w_MLE
-    print "lnL at MLEs =", lnL
-    print "L at MLEs =", math.exp(lnL)
+    # We can "unpack" the list into 3 separate variables to make it easier to
+    #   report
+    p_strong_mle, w_mle, ln_l = mle_list
+    p_strong_null, w_null, ln_l_null = null_mle_list
+
+    print "MLE of p_strong =", p_strong_mle
+    print "MLE of w =", w_mle
+    print "lnL at MLEs =", ln_l
+    print "L at MLEs =", exp(ln_l)
     print
-
-    # Calculate the MLEs and log-likelihood for the null value of w.
-    #
-    prob_strong_null, lnL_null = maximize_lnL_fixed_w(w_null)
-
-    print "MLE of prob_strong at null w =", prob_strong_null
+    print "MLE of p_strong at null w =", p_strong_null
     print "null of w =", w_null
-    print "lnL at null =", lnL_null
-    print "L at null =", math.exp(lnL_null)
+    print "ln_l at null =", ln_l_null
+    print "L at null =", exp(ln_l_null)
     print
-    
-    # Calculate the log likelihood ratio test statistic.
-    #
-    lrt = 2*(lnL_null - lnL)
-
     print "2* log-likelihood ratio = ", lrt
     print
 
@@ -235,77 +339,77 @@ if __name__ == '__main__':
 
     # Do parametric bootstrapping to produce the null distribution of the LRT statistic
     #
-    if num_sims < 1:
+    if n_sims < 1:
         sys.exit(0)
     print "Generating null distribution of LRT..."
 
-    # For convenience, we'll write the simulated LRT values to standard error...
+    # We'll write the simulated LRT values to the "standard error stream" which
+    #   is written to the screen when we run the program from a terminal.
+    # We could use:
+    #       pboot_out = open("param_boot.txt", "w")
+    # if we wanted to write the results to a file called "param_boot.txt"
     #
-    sys.stderr.write("rep\tlrt\n")
+    pboot_out = sys.stderr
+    pboot_out.write("rep\tlrt\n")
 
     # null_dist will be a list that holds all of the simulated LRT values. We
     # use [] to create an empty list.
     #
     null_dist = []
 
-    # a "for loop" will repeat the following instructions num_sims times
+    # a "for loop" will repeat the following instructions n_sims times
     #
-    for i in range(num_sims):
-        # This simulates a data set assuming that the parameters are at the 
+    for i in range(n_sims):
+        # This simulates a data set assuming that the parameters are at the
         #   values that the take under the null hypothesis (since we want the
         #   null distribution of the test statistic).
         #
-        sim_data = simulate_data(prob_strong_null, w_null)
-        # Update the global variable "the_data" to reflect the simulation
-        #   so that the likelihood calculations will use the simulated data
-        #
-        the_data = sim_data
-        
-        
+        sim_params = [p_strong_null, w_null]
+        sim_data = simulate_data(real_data, sim_params)
+
         # Calculate the LRT on the simulated data using the same functions that
         #   we used when we analyzed the real data
         #
-        sim_s_mle, sim_w_mle, sim_max_lnL = estimate_global_MLE()
-        sim_s_null, sim_lnL_null = maximize_lnL_fixed_w(w_null)
-        sim_lrt = 2*(sim_lnL_null - sim_max_lnL)
+        sim_lrt, sim_mle_list, sim_null = calc_lrt_statistic(sim_data, null_params)
 
         # Add the simulated LRT to our null distribution
         #
         null_dist.append(sim_lrt)
 
-        # Write the value to the screen.
+        # Write the value to the output stream.  The str() function converts
+        #   numbers to strings so that they can be written to the output stream
         #
-        sys.stderr.write(str(i + 1))
-        sys.stderr.write('\t')
-        sys.stderr.write(str(sim_lrt))
-        sys.stderr.write('\n')
-    
+        pboot_out.write(str(i + 1))
+        pboot_out.write('\t')
+        pboot_out.write(str(sim_lrt))
+        pboot_out.write('\n')
+
     # We want the most extreme (negative) values of the LRT from the simulations
     #   if we sort the list, then these values will be at the front of the list
     #   (available by indexing the list with small numbers)
     #
     null_dist.sort()
-    
+
     # We can report the value of the LRT that is smaller than 95% of the simulated
     #   values...
     #
-    num_for_p_point05 = int(0.05*num_sims)
-    print "5% critical value is approx =", null_dist[num_for_p_point05]
-    
-    # And we can calculate the P-value for our data by counting the number of 
+    n_for_p_point05 = int(0.05*n_sims)
+    print "5% critical value is approx =", null_dist[n_for_p_point05]
+
+    # And we can calculate the P-value for our data by counting the number of
     #   simulated replicates that are more extreme than our observed data.
-    #   We do this by starting a counter at 0, walking through the stored 
+    #   We do this by starting a counter at 0, walking through the stored
     #   null distribution, and adding 1 to our counter every time we see a
     #   simulated LRT that is more extreme than the "real" lrt.
     #
-    num_more_extreme = 0
+    n_more_extreme = 0
     for v in null_dist:
-        if v < lrt:
-            num_more_extreme = num_more_extreme + 1
+        if v <= lrt:
+            n_more_extreme = n_more_extreme + 1
         else:
             break
     # Then we express this count of the number more extreme as a probability
     #    that a simulated value would be more extreme than the real data.
     #
-    print "Approx P-value =", num_more_extreme/float(num_sims)
+    print "Approx P-value =", n_more_extreme/float(n_sims)
 
