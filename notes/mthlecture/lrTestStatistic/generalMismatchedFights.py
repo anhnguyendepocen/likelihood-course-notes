@@ -104,16 +104,19 @@ def ln_likelihood(the_data, param_list):
         #   each of the pairing scenarios  (even, strong/weak, and weak/strong).
         #
         p_datum_if_even = pow(prob0_even, n0_wins) * pow(prob1_even, n1_wins)
+        p_datum_and_even = p_even*p_datum_if_even
+        
         p_datum_if_SW = pow(prob0_SW, n0_wins) * pow(prob1_SW, n1_wins)
+        p_datum_and_SW = p_SW * p_datum_if_SW
+        
         p_datum_if_WS = pow(prob0_WS, n0_wins) * pow(prob1_WS, n1_wins)
-
+        p_datum_and_WS = p_WS * p_datum_if_WS
+        
         # By the law of total probability, the probability of this datum is
         #   simply the sum of the probability under each scenario multiplied by
         #   the probability that the scenario would occur
         #
-        p_datum = (p_even*p_datum_if_even
-                   + p_SW*p_datum_if_SW
-                   + p_WS*p_datum_if_WS )
+        p_datum = p_datum_and_even + p_datum_and_SW + p_datum_and_WS
 
         # To avoid taking the log of 0.0, we'll return -infinity for the
         #   log-likelihood of any scenario that is incompatible with a datum
