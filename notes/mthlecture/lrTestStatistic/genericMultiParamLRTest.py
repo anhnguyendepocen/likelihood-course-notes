@@ -26,7 +26,7 @@ assert(len(INITIAL_PARAMETER_GUESS) == len(PARAMETER_NAMES))
 ############################################################################
 
 def parse_data(input):
-    line_source = iter()
+    line_source = iter(input)
     line_source.next() # this skips the first line
 
     # create an empty list of data points.
@@ -360,24 +360,36 @@ if __name__ == '__main__':
 
     # we 
     import sys
+    arguments = sys.argv[1:]
     if len(sys.argv) < 3 + len(INITIAL_PARAMETER_GUESS):
         print_help()
         sys.exit(1)
 
-    filename = sys.argv[1]
+    filename = arguments[0]
     if not os.path.exists(filename):
         sys.exit('The file "' + filename + '" does not exist')
     inp = open(filename, 'rU') # open the file name for reading (the 'rU' argument)
 
     real_data = parse_data(inp)
 
-    w_null = float(sys.argv[1])
-    n_sims = int(sys.argv[2])
-    
-    # In my ln_likelihood, I decided that w will be the second parameter listed
+    # The number of simulations is the last parameter...
     #
-    null_params = [None, w_null]
+    n_sims = int(arguments[-1])
     
+    # The "middle" arguments will be constraints on the parameters.
+    # We'll store the number for every argument that is an argument.  If the
+    #   argument can't be turned into a number then we'll reach the except
+    #   block.  In this case we'll insert None into the list to indicate that
+    #   the parameter is not constrained.
+    #
+    null_params = []
+    for arg in arguments[1:-1]:  # this walks through all arguments except the first and last
+        try:
+            p = float(arg)
+            null_params.append(p)
+        except:
+            null_params.append(None)
+    print "null_params =", null_params
     # Call a function to maximize the log-likelihood under the unconstrained
     #   and null conditions.  This returns the LRT statistic and the 
     #   parameter estimates as lists
@@ -395,10 +407,11 @@ if __name__ == '__main__':
     print "L at MLEs =", exp(ln_l)
 
     for n, param_name in enumerate(PARAMETER_NAMES):
+        v = null_mle_list[n]
         if null_params[n] is None:
-            print "Under the null, the MLE of", param_name, "=", mle_list[n]
+            print "Under the null, the MLE of", param_name, "=", v
         else:
-            print "Under the null, ", param_name, " is constrained to be", mle_list[n]
+            print "Under the null, ", param_name, " is constrained to be", v
     print "ln_l at null =", ln_l_null
     print "L at null =", exp(ln_l_null)
 
@@ -430,12 +443,12 @@ if __name__ == '__main__':
 
     # a "for loop" will repeat the following instructions n_sims times
     #
+    sim_params = null_mle_list[:-1]
     for i in range(n_sims):
         # This simulates a data set assuming that the parameters are at the
         #   values that the take under the null hypothesis (since we want the
         #   null distribution of the test statistic).
         #
-        sim_params = [p_strong_null, w_null]
         sim_data = simulate_data(real_data, sim_params)
 
         # Calculate the LRT on the simulated data using the same functions that
