@@ -360,6 +360,7 @@ if __name__ == '__main__':
 
     # we 
     import sys
+    
     arguments = sys.argv[1:]
     if len(sys.argv) < 3 + len(INITIAL_PARAMETER_GUESS):
         print_help()

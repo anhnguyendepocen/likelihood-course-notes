@@ -10,32 +10,7 @@ from random import random
 #    (the number of bouts won by male 0, the number of bouts won by male 1)
 
 
-real_data = [(0, 2),
-              (1, 1),
-              (1, 1),
-              (0, 2),
-              (2, 0),
-              (1, 1),
-              (0, 2),
-              (2, 0),
-              (1, 1),
-              (0, 2),
-            ]
-
-## Data from 5 sampling schemes: 2 bouts/pair, 3 bouts/pair, ... 7 bouts/pair
-##  for each sampling scheme we have 20 observations
-#  real_data = [(0, 2), (0, 2), (0, 2), (0, 2), (0, 2), (2, 0), (2, 0), (2, 0), (1, 1), (0, 2),
-#               (0, 2), (2, 0), (0, 2), (1, 1), (1, 1), (2, 0), (0, 2), (1, 1), (1, 1), (1, 1),
-#               (3, 0), (2, 1), (0, 3), (1, 2), (1, 2), (0, 3), (0, 3), (2, 1), (0, 3), (1, 2),
-#               (2, 1), (1, 2), (2, 1), (1, 2), (1, 2), (2, 1), (2, 1), (2, 1), (0, 3), (1, 2),
-#               (0, 4), (3, 1), (0, 4), (3, 1), (1, 3), (2, 2), (1, 3), (4, 0), (1, 3), (2, 2),
-#               (1, 3), (3, 1), (0, 4), (2, 2), (1, 3), (0, 4), (1, 3), (4, 0), (2, 2), (3, 1),
-#               (2, 3), (4, 1), (4, 1), (4, 1), (2, 3), (2, 3), (2, 3), (0, 5), (1, 4), (2, 3),
-#               (4, 1), (4, 1), (5, 0), (1, 4), (1, 4), (2, 3), (3, 2), (2, 3), (2, 3), (5, 0),
-#               (3, 3), (1, 5), (0, 6), (4, 2), (4, 2), (4, 2), (0, 6), (4, 2), (1, 5), (3, 3),
-#               (1, 5), (3, 3), (4, 2), (5, 1), (3, 3), (2, 4), (1, 5), (5, 1), (5, 1), (3, 3),
-#               (4, 3), (7, 0), (6, 1), (6, 1), (3, 4), (3, 4), (4, 3), (1, 6), (4, 3), (5, 2),
-#               (2, 5), (3, 4), (2, 5), (4, 3), (4, 3), (4, 3), (4, 3), (4, 3), (2, 5), (1, 6)]
+real_data = PASTE_YOUR_DATA_SET_HERE
 
 ############################################################################
 # Begin model-specific initialization code
@@ -44,6 +19,11 @@ real_data = [(0, 2),
 #   this list is also used by some functions to determine the dimensionality
 #   of the model
 INITIAL_PARAMETER_GUESS = [.75, .75]
+# This is a list of parameter names to show
+#
+PARAMETER_NAMES = ['p', 'w']
+# we expect the number of parameters to be the same in both lists.
+assert(len(INITIAL_PARAMETER_GUESS) == len(PARAMETER_NAMES)) 
 ############################################################################
 # End model-specific initialization code
 ############################################################################
@@ -59,86 +39,58 @@ def ln_likelihood(the_data, param_list):
     ############################################################################
     # Begin model-specific log-likelihood code
     ############################################################################
+    first_param, second_param = param_list
 
-    p_strong, w = param_list
-    ###########################################################################
-    # Return -inf if the parameters are out of range.  This will keep the optimizer
-    #  from returning "illegal" values of the parameters.
+    # do our "sanity-checking" to make sure that we are in the legal range of 
+    #   the parameters.
     #
-    if w != w or p_strong != p_strong:
+    if first_param != first_param or second_param != second_param:
         return float('-inf')
-    if (w < .5) or (w > 1.0) or (p_strong < 0.0) or (p_strong > 1.0):
+    if (first_param < 0.0) or (first_param > 1.0)
+        return float('-inf')
+    if (second_param < 0.0) or (second_param > 1.0):
         return float('-inf')
 
-    p_SS = p_strong * p_strong
-    p_SW = p_strong * (1 - p_strong)
-    p_WS = p_SW
-    p_WW = (1-p_strong)*(1 - p_strong)
 
-    # Calculate the probability that the males are evenly matched
-    #
-    p_even = p_WW + p_SS
-
-    # Calculate the probability of an outcome of a bout (0 or 1) conditional
-    #    on what type of pairing we have:
-    #
-    prob0_even = 0.5
-    prob1_even = 1 - prob0_even
-
-    prob0_SW = w
-    prob1_SW = 1 - prob0_SW
-
-    prob0_WS = 1 - w
-    prob1_WS = 1 - prob0_WS
-
-    # initialize the ln_l to 0, we want this to be the sum of the log-likelihood
-    #   for each datum, so we'll start at 0 and add to it.
-    #
     ln_l = 0.0
-    for datum in the_data:
-        # Each datum is a count of the number of bouts won by male 0 (the 0-th
-        #   element of the datum object), and the number of bouts won by
-        #   male #1 (the element of the datum object at index 1).
-        #
-        n0_wins = datum[0]
-        n1_wins  = datum[1]
+    
+    # In our model, the first individual can't be a recapture, so this 
+    #   probability calculation is "special" Here we divide the data
+    #   into the first observation and a list that contains the remaining
+    #   data points.
+    #
+    first_observation = the_data[0]
+    remaining_observations = the_data[1:]
+    
+    p_datum = CALCULATE_THE_PROBABILITY_OF_THE_FIRST_DATUM_HERE
+    
+    ln_l = ln_l + p_datum
 
-        # Now we calculate the probability of seeing the data conditional on
-        #   each of the pairing scenarios  (even, strong/weak, and weak/strong).
-        #
-        p_datum_if_even = pow(prob0_even, n0_wins) * pow(prob1_even, n1_wins)
-        p_datum_and_even = p_even*p_datum_if_even
-        
-        p_datum_if_SW = pow(prob0_SW, n0_wins) * pow(prob1_SW, n1_wins)
-        p_datum_and_SW = p_SW * p_datum_if_SW
-        
-        p_datum_if_WS = pow(prob0_WS, n0_wins) * pow(prob1_WS, n1_wins)
-        p_datum_and_WS = p_WS * p_datum_if_WS
-        
-        # By the law of total probability, the probability of this datum is
-        #   simply the sum of the probability under each scenario multiplied by
-        #   the probability that the scenario would occur
-        #
-        p_datum = p_datum_and_even + p_datum_and_SW + p_datum_and_WS
+    # In our model of recapturing individuals, the previous observation
+    #   is relevant to our current observation.  So we'll keep track of the
+    #   previous observation as the variable `previous`
+    #
+    previous = first_observation
 
-        # To avoid taking the log of 0.0, we'll return -infinity for the
-        #   log-likelihood of any scenario that is incompatible with a datum
-        #
-        if p_datum <= 0.0:
-            return float('-inf')
+    # Now we have to consider the rest of the data points
+    #
+    for datum in remaining_observations:
+        p_datum = = CALCULATE_THE_PROBABILITY_OF_THE_DATUM_GIVEN_PARAMETERS_AND_PREVIOUS_VALUE_HERE
 
-        # This is where we add the log-likelihood for this datum to the total
-        #   for the whole data set.
+        # Add it to the log-likelihood
         #
         ln_l = ln_l + log(p_datum)
+        # Now we update the variable `previous` to reflect the latest outcome
+        #   so that in the next execution of this loop it really will refer
+        #   to the previous value
+        #
+        previous = datum
 
-    # This is how we send the result back to the function that called this
-    #   function.  SciPy's numerical optimization code will use the values
-    #   we return to try to find optimal values of p_strong and w by
-    #   repeatedly trying out a lot of plausible combinations.
-    #
+
     if verbose:
         sys.stderr.write('ln_l = ' + str(ln_l) + '\n')
+    # This is how we send the result back to the function that called this
+    #   function.  
     return ln_l
     ############################################################################
     # End model-specific log-likelihood code
@@ -305,6 +257,43 @@ def calc_lrt_statistic(data, null_params):
     lrt = 2*(null_max_ln_l - global_max_ln_l)
     return lrt, global_mle, null_mle
     
+
+def print_help():
+    num_args_expected = 2 + len(INITIAL_PARAMETER_GUESS)
+    output_stream = sys.stdout
+    output_stream.write('Expecting ' + str(num_args_expected) + ''' arguments.
+    The first argument should be a filename,
+    The last argument should be the number of parametric bootstrapping replicates,
+    The intervening arguments should be the values of the parameters in the null
+        hypothesis (or 'None' to indicate that the parameter is not constrained
+        in the null hypothesis).
+    
+    The order of the parameters is in this constraint statement is:
+        ''')
+    for p in PARAMETER_NAMES:
+        output_stream.write(p + ' ')
+    assert len(INITIAL_PARAMETER_GUESS) > 0
+    if len(INITIAL_PARAMETER_GUESS) == 1:
+        c_name = PARAMETER_NAMES[0]
+        c_val = str(INITIAL_PARAMETER_GUESS[0])
+        parg_list[c_val]
+    else:
+        c_name = PARAMETER_NAMES[1]
+        c_val = str(INITIAL_PARAMETER_GUESS[1])
+        parg_list = ['None'] * len(INITIAL_PARAMETER_GUESS)
+        parg_list[1] = str(INITIAL_PARAMETER_GUESS[1])
+
+    output_stream.write('''
+
+    So if you want to perform 1000 simulations, your data is in the file "data.txt" 
+        and you want to test the hypothesis that:
+            ''' + c_name + ' = ' + c_val + '''
+        then you would use the arguments:
+
+data.txt ''' + ' '.join(parg_list) +  ''' 1000
+
+''')        
+        
     
 if __name__ == '__main__':
     # user-interface and sanity checking...
@@ -312,13 +301,29 @@ if __name__ == '__main__':
     # we 
     import sys
     
-    w_null = float(sys.argv[1])
-    n_sims = int(sys.argv[2])
-    
-    # In my ln_likelihood, I decided that w will be the second parameter listed
+    arguments = sys.argv[1:]
+    if len(sys.argv) < 3 + len(INITIAL_PARAMETER_GUESS):
+        print_help()
+        sys.exit(1)
+
+    # The number of simulations is the last parameter...
     #
-    null_params = [None, w_null]
+    n_sims = int(arguments[-1])
     
+    # The "middle" arguments will be constraints on the parameters.
+    # We'll store the number for every argument that is an argument.  If the
+    #   argument can't be turned into a number then we'll reach the except
+    #   block.  In this case we'll insert None into the list to indicate that
+    #   the parameter is not constrained.
+    #
+    null_params = []
+    for arg in arguments[1:-1]:  # this walks through all arguments except the first and last
+        try:
+            p = float(arg)
+            null_params.append(p)
+        except:
+            null_params.append(None)
+    print "null_params =", null_params
     # Call a function to maximize the log-likelihood under the unconstrained
     #   and null conditions.  This returns the LRT statistic and the 
     #   parameter estimates as lists
@@ -327,18 +332,23 @@ if __name__ == '__main__':
 
     # We can "unpack" the list into 3 separate variables to make it easier to
     #   report
-    p_strong_mle, w_mle, ln_l = mle_list
-    p_strong_null, w_null, ln_l_null = null_mle_list
+    ln_l = mle_list[-1]
+    ln_l_null = null_mle_list[-1]
 
-    print "MLE of p_strong =", p_strong_mle
-    print "MLE of w =", w_mle
+    for n, param_name in enumerate(PARAMETER_NAMES):
+        print "MLE of", p, "=", mle_list[n]
     print "lnL at MLEs =", ln_l
     print "L at MLEs =", exp(ln_l)
-    print
-    print "MLE of p_strong at null w =", p_strong_null
-    print "null of w =", w_null
+
+    for n, param_name in enumerate(PARAMETER_NAMES):
+        v = null_mle_list[n]
+        if null_params[n] is None:
+            print "Under the null, the MLE of", param_name, "=", v
+        else:
+            print "Under the null, ", param_name, " is constrained to be", v
     print "ln_l at null =", ln_l_null
     print "L at null =", exp(ln_l_null)
+
     print
     print "2* log-likelihood ratio = ", lrt
     print
@@ -367,12 +377,12 @@ if __name__ == '__main__':
 
     # a "for loop" will repeat the following instructions n_sims times
     #
+    sim_params = null_mle_list[:-1]
     for i in range(n_sims):
         # This simulates a data set assuming that the parameters are at the
         #   values that the take under the null hypothesis (since we want the
         #   null distribution of the test statistic).
         #
-        sim_params = [p_strong_null, w_null]
         sim_data = simulate_data(real_data, sim_params)
 
         # Calculate the LRT on the simulated data using the same functions that
