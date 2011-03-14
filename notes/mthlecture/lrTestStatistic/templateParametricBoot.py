@@ -5,10 +5,6 @@ from math import pow, log, exp
 from random import random
 
 
-# we are going to use a summary that is a pair of numbers for each pair of males
-#   it will represent:
-#    (the number of bouts won by male 0, the number of bouts won by male 1)
-
 
 real_data = PASTE_YOUR_DATA_SET_HERE
 
@@ -18,12 +14,26 @@ real_data = PASTE_YOUR_DATA_SET_HERE
 # This is a list of values to try for the numerical optimizer.  The length of 
 #   this list is also used by some functions to determine the dimensionality
 #   of the model
-INITIAL_PARAMETER_GUESS = [.75, .75]
-# This is a list of parameter names to show
+initial_parameter_guess = [.75, .75]
+
+# This is a list of parameter names to show. Modify this based on what order
+#   you want to use for the parameter list. It does not matter which order
+#   you choose, but you need to know what the program thinks of as the first
+#   and second parameters so that the output will make sense and your code
+#   that unpacks the parameter list will know whether the first parameter is
+#   the recapture probability or the probability of an individual being asymmetric
+#   You should put the names in quotes, so the line would look like:
+#  
+#   parameter_names = ['mu', 'sigma'] 
+#   
+#   for inference under the normal model.
 #
-PARAMETER_NAMES = ['p', 'w']
-# we expect the number of parameters to be the same in both lists.
-assert(len(INITIAL_PARAMETER_GUESS) == len(PARAMETER_NAMES)) 
+parameter_names = [NAME_FOR_THE_FIRST_PARAMETER, NAME_FOR_THE_SECOND_PARAMETER]
+
+# we expect the number of parameters to be the same in both lists. This is a 
+#   sanity check that helps us see if we made a mistake.
+#
+assert(len(initial_parameter_guess) == len(parameter_names)) 
 ############################################################################
 # End model-specific initialization code
 ############################################################################
@@ -104,53 +114,34 @@ def simulate_data(template_data, params):
     ############################################################################
     # Begin model-specific simulation code
     ############################################################################
-    # For our model the params are s and w, so we can unpack those from 
-    #   the list of parameters
-    s, w = params
 
-    p_SS = s*s
-    p_SW = s*(1 - s)
-    p_WS = (1 - s)*s
-    p_WW = (1 - s)*(1 - s)
-    p_even = p_SS + p_WW
+    n_observations = len(template_data)
 
+    first_param, second_param = param_list
 
-    sim_data_set = []
+    first_datum = CODE_TO_SIMULATE_FIRST_DATA_POINT_HERE
+    sim_data_set = [first_datum]
 
-    for datum in template_data:
-        n_bouts = sum(datum)
-
-        # randomly pick the type of pairing the we have 'EVEN', 'SW' or 'WS'
-        rand_match_p = random()
-        if rand_match_p < p_even:
-            match_type = 'EVEN'
-        else:
-            if rand_match_p < p_even + p_SW:
-                match_type = 'SW'
-            else:
-                match_type = 'WS'
-
-        # determine the probability that male 0 wins each bout.
-        if match_type == 'EVEN':
-            p_zero_wins = 0.5
-        if match_type == 'WS':
-            p_zero_wins = w
-        if match_type == 'SW':
-            p_zero_wins = 1 - w
-
-        # start out with no bouts won by either, then we are going to
-        #   simulate the result of n_bouts
-        n0_won = 0
-        n1_won = 0
-        for bout in range(n_bouts):
-            if random() < p_zero_wins:
-                n0_won = n0_won + 1
-            else:
-                n1_won = n1_won + 1
-
-        # add this simulated outcome to our simulated data set
-        sim_datum = (n0_won, n1_won)
+    previous_datum = first_datum
+    for sample_index in range(n_observations):
+        # We will need to use some pseudo-random numbers generated from
+        #   a Uniform distribution between 0 and 1 as the source
+        #   of variability for our simulation.  
+        # This is how we generate such a number and store it as `u` in Python
+        #
+        u = random() 
+        # Each realization that you simulate may depend on the previous 
+        #   value simulated, so you will have to add some more logic here
+        #   to actually generate a data point under the model.
+        # Each datum that you simulate should be a 0 or a 1 (because that is
+        #   how we are recording the data in our real data set.
+        #
+        sim_datum = CODE_TO_SIMULATE_NEXT_DATA_POINT_HERE
         sim_data_set.append(sim_datum)
+        # This updates the `previous_datum` variable so that it is always accurate
+        #   when we execute a block of code in this "for loop"
+        #
+        previous_datum = sim_datum
 
     return sim_data_set
     ############################################################################
@@ -159,7 +150,10 @@ def simulate_data(template_data, params):
 
 
 
-
+################################################################################
+#
+# YOU SHOULD NOT HAVE TO MODIFY THE CODE BELOW THIS POINT !!!
+################################################################################
 
 def calc_global_ml_solution(data):
     '''Uses SciPy's  optimize.fmin to find the mle. Starts the search at
@@ -178,7 +172,7 @@ def calc_global_ml_solution(data):
         '''
         return -ln_likelihood(data, x)
 
-    x0 = INITIAL_PARAMETER_GUESS
+    x0 = initial_parameter_guess
     solution = optimize.fmin(scipy_ln_likelihood, x0, xtol=1e-8, disp=False)
     solution = list(solution)
     ln_l = -scipy_ln_likelihood(solution)
@@ -192,7 +186,7 @@ def calc_null_ml_solution(data, param_constraints):
     '''
     x0 = []
     adaptor_list = []
-    for i, val in enumerate(INITIAL_PARAMETER_GUESS):
+    for i, val in enumerate(initial_parameter_guess):
         if i >= len(param_constraints) or param_constraints[i] == None:
             x0.append(val)
             adaptor_list.append(None)
@@ -259,7 +253,7 @@ def calc_lrt_statistic(data, null_params):
     
 
 def print_help():
-    num_args_expected = 2 + len(INITIAL_PARAMETER_GUESS)
+    num_args_expected = 2 + len(initial_parameter_guess)
     output_stream = sys.stdout
     output_stream.write('Expecting ' + str(num_args_expected) + ''' arguments.
     The first argument should be a filename,
@@ -270,18 +264,18 @@ def print_help():
     
     The order of the parameters is in this constraint statement is:
         ''')
-    for p in PARAMETER_NAMES:
+    for p in parameter_names:
         output_stream.write(p + ' ')
-    assert len(INITIAL_PARAMETER_GUESS) > 0
-    if len(INITIAL_PARAMETER_GUESS) == 1:
-        c_name = PARAMETER_NAMES[0]
-        c_val = str(INITIAL_PARAMETER_GUESS[0])
+    assert len(initial_parameter_guess) > 0
+    if len(initial_parameter_guess) == 1:
+        c_name = parameter_names[0]
+        c_val = str(initial_parameter_guess[0])
         parg_list[c_val]
     else:
-        c_name = PARAMETER_NAMES[1]
-        c_val = str(INITIAL_PARAMETER_GUESS[1])
-        parg_list = ['None'] * len(INITIAL_PARAMETER_GUESS)
-        parg_list[1] = str(INITIAL_PARAMETER_GUESS[1])
+        c_name = parameter_names[1]
+        c_val = str(initial_parameter_guess[1])
+        parg_list = ['None'] * len(initial_parameter_guess)
+        parg_list[1] = str(initial_parameter_guess[1])
 
     output_stream.write('''
 
@@ -302,7 +296,7 @@ if __name__ == '__main__':
     import sys
     
     arguments = sys.argv[1:]
-    if len(sys.argv) < 3 + len(INITIAL_PARAMETER_GUESS):
+    if len(sys.argv) < 3 + len(initial_parameter_guess):
         print_help()
         sys.exit(1)
 
@@ -335,12 +329,12 @@ if __name__ == '__main__':
     ln_l = mle_list[-1]
     ln_l_null = null_mle_list[-1]
 
-    for n, param_name in enumerate(PARAMETER_NAMES):
+    for n, param_name in enumerate(parameter_names):
         print "MLE of", p, "=", mle_list[n]
     print "lnL at MLEs =", ln_l
     print "L at MLEs =", exp(ln_l)
 
-    for n, param_name in enumerate(PARAMETER_NAMES):
+    for n, param_name in enumerate(parameter_names):
         v = null_mle_list[n]
         if null_params[n] is None:
             print "Under the null, the MLE of", param_name, "=", v
