@@ -6,7 +6,10 @@ from random import random
 
 
 
-real_data = PASTE_YOUR_DATA_SET_HERE
+real_data = [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1,
+0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1,
+1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1]
 
 ############################################################################
 # Begin model-specific initialization code
@@ -28,7 +31,7 @@ initial_parameter_guess = [.75, .75]
 #   
 #   for inference under the normal model.
 #
-parameter_names = [NAME_FOR_THE_FIRST_PARAMETER, NAME_FOR_THE_SECOND_PARAMETER]
+parameter_names = ['a', 'r']
 
 # we expect the number of parameters to be the same in both lists. This is a 
 #   sanity check that helps us see if we made a mistake.
@@ -50,6 +53,7 @@ def ln_likelihood(the_data, param_list):
     # Begin model-specific log-likelihood code
     ############################################################################
     first_param, second_param = param_list
+    a, r = param_list
 
     # do our "sanity-checking" to make sure that we are in the legal range of 
     #   the parameters.
@@ -72,7 +76,10 @@ def ln_likelihood(the_data, param_list):
     first_observation = the_data[0]
     remaining_observations = the_data[1:]
     
-    p_datum = CALCULATE_THE_PROBABILITY_OF_THE_FIRST_DATUM_HERE
+    if first_observation == 1:
+        p_datum = a
+    else:
+        p_datum = 1 - a
     
     ln_l = ln_l + log(p_datum)
 
@@ -85,7 +92,13 @@ def ln_likelihood(the_data, param_list):
     # Now we have to consider the rest of the data points
     #
     for datum in remaining_observations:
-        p_datum = CALCULATE_THE_PROBABILITY_OF_THE_DATUM_GIVEN_PARAMETERS_AND_PREVIOUS_VALUE_HERE
+        if datum == 1:
+            p_datum = (1-r)*a
+        else:
+            p_datum = (1-r)*(1-a)            
+        if datum == previous:
+            p_datum = p_datum + r
+
 
         # Add it to the log-likelihood
         #
@@ -117,9 +130,12 @@ def simulate_data(template_data, param_list):
 
     n_observations = len(template_data)
 
-    first_param, second_param = param_list
+    a, r = param_list
 
-    first_datum = CODE_TO_SIMULATE_FIRST_DATA_POINT_HERE
+    if random() < a:
+        first_datum = 1
+    else:
+        first_datum = 0
     sim_data_set = [first_datum]
 
     previous_datum = first_datum
@@ -136,7 +152,13 @@ def simulate_data(template_data, param_list):
         # Each datum that you simulate should be a 0 or a 1 (because that is
         #   how we are recording the data in our real data set.
         #
-        sim_datum = CODE_TO_SIMULATE_NEXT_DATA_POINT_HERE
+        if u < r:
+            sim_datum = previous_datum
+        else:
+            if random() < a:
+                sim_datum = 1
+            else:
+                sim_datum = 0
         sim_data_set.append(sim_datum)
         # This updates the `previous_datum` variable so that it is always accurate
         #   when we execute a block of code in this "for loop"

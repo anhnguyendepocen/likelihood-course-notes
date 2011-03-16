@@ -1,0 +1,433 @@
+\documentclass[landscape]{foils} 
+\newif\ifpdf
+\ifx\pdfoutput\undefined
+\pdffalse % we are not running PDFLaTeX
+\else
+\pdfoutput=1 % we are running PDFLaTeX
+\pdftrue
+\fi
+
+\ifpdf
+\usepackage[pdftex]{graphicx}
+\else
+\usepackage{graphicx}
+\fi
+
+\ifpdf
+\DeclareGraphicsExtensions{.pdf, .jpg, .tif, .png}
+\else
+\DeclareGraphicsExtensions{.eps, .jpg}
+\fi
+
+%\usepackage{pslatex}
+\usepackage{tabularx,dcolumn, graphicx, amsfonts,amsmath}  
+\usepackage[sectionbib]{natbib}
+\bibliographystyle{apalike}
+\usepackage{picinpar}
+\usepackage{multirow}
+\usepackage{rotating}
+\usepackage{paralist} %compactenum
+\setlength{\voffset}{-0.5in}
+%\setlength{\hoffset}{-0.5in}
+%\setlength{\textwidth}{10.5in}
+\setlength{\textheight}{7in}
+\setlength{\parindent}{0pt}
+%\pagestyle{empty}
+%\renewcommand{\baselinestretch}{2.0}
+\DeclareMathSymbol{\expect}{\mathalpha}{AMSb}{'105}
+\def\p{\rm p}
+\def\pp{\rm P}
+% this are commands that come with the color package
+\usepackage{color}
+\usepackage{fancyhdr}
+
+
+\pagestyle{empty}
+%define colors
+\definecolor{mediumblue}{rgb}{0.0509,0.35,0.568}
+\definecolor{blue}{rgb}{0.0109,0.15,0.468}
+\definecolor{black}{rgb}{0.04,0.06,0.2}
+\definecolor{darkblue}{rgb}{0.03,0.1,0.2}
+\definecolor{darkgreen}{rgb}{0.03,0.5,0.2}
+\definecolor{lightblue}{rgb}{0.85,0.9333,0.95}
+\definecolor{lightblue2}{rgb}{0.270588, 0.45098, 0.701961}
+\definecolor{white}{rgb}{1.0,1.0,1.0}
+\definecolor{yellow}{rgb}{0.961,0.972,0.047}
+\definecolor{red}{rgb}{0.9,0.1,0.1}
+\definecolor{orange}{rgb}{1.0,0.4,0.0}
+\definecolor{grey}{rgb}{0.5,0.5,0.5}
+\definecolor{violet}{rgb}{0.619608, 0.286275, 0.631373}
+\definecolor{mybackgroundcolor}{rgb}{1.0,1.0,1.0}
+
+%\definecolor{light}{rgb}{.5,0.5,0.0}
+\definecolor{light}{rgb}{.3,0.3,0.3}
+
+% sets backgroundcolor for whole document 
+\pagecolor{mybackgroundcolor}
+% sets text color
+%\color{black}
+% see below for an example how to change just a few words
+% using \textcolor{color}{text}
+
+\font \courier=pcrb scaled 2000
+\newcommand{\notetoself}[1]{{\textsf{\textsc{\color{red} #1}}}\\}
+
+\newcommand{\answer}[1]{{\sf \color{red} #1}}
+
+\usepackage{pdfpages}
+
+\renewcommand{\Pr}{{\mathbb P}}
+
+
+\newcommand{\section}{\secdef \newsection\newsection}
+%\renewcommand{\labelitemi}{\includegraphics[width=5mm]{images/bullet.pdf}}
+\newcommand{\newsection}[1]{%
+{
+	\par\flushleft\large\sf\bfseries \vskip -2cm #1\\\rule[0.7\baselineskip]{\textwidth}{0.5mm}\par}}
+
+\newcommand{\subsection}{\secdef \test\test}
+\newcommand{\test}[1]{%
+	{\par\flushleft\normalsize\sf\bfseries #1: }}
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\prob}{{\rm Prob~}}
+\def\showy#1{{\normalsize\sf\bfseries #1}}
+\def\donotuse#1{}
+
+\newcommand{\entrylabel}[1]{\mbox{#1}\hfil}
+\newenvironment{entry}
+	{\begin{list}{}%
+		{\renewcommand{\makelabel}{\entrylabel}%
+		\setlength{\labelwidth}{35pt}%
+		\setlength{\leftmargin}{\labelwidth+\labelsep}%
+	}%
+	{\end{list}}}
+
+\newcommand{\poltext}{{\copyright\ 2002--2010 by Paul O. Lewis -- Modified by  Mark Holder with permission from Paul Lewis}}
+
+\newcommand{\pol}{{\footnotesize \poltext}}
+\newcommand{\myBackground}{\begin{picture}(0,0)(0,0)  \put(-40,-70){\makebox(0,0)[l]{\includegraphics[width=33cm]{images/baby_blue.jpg}}} \end{picture}}
+\newcommand{\myFooter}{}
+%\begin{picture}(0,0)(0,0)
+%	\put(0,-185){\pol}
+%\end{picture}}
+\newcommand{\myNewSlide}{\newpage\myFooter} % \myBackground}
+
+\usepackage{url}
+\usepackage{hyperref}
+\hypersetup{backref,  linkcolor=blue, citecolor=red, colorlinks=true, hyperindex=true}
+
+\begin{document}
+\pagecolor{white}
+\unitlength=1mm
+
+\myNewSlide
+You suspect that a population of big horn sheep are made up of two classes of males based on their sparring ability: Strong and Weak. The proportion of strong individuals is unknown.\\ {\bf Experiment:}
+\begin{compactitem}
+	\item You randomly select 10 pairs of males from a large population. 
+	\item For each pair you randomly assign one of them the ID 0 and the other the ID 1.  
+	\item You record the \# of winner from 2 contests.
+\end{compactitem}
+{\bf Model:}
+\begin{compactitem}
+	\item If two individuals within the same class fight, you expect either outcome to be equally likely.
+	\item If a Strong is paired against a Weak then you expect that the probability that the stronger one wins with some probability, $w$.
+	\item $w$ is assumed to be the same for every pairing of Strong {versus} Weak and the same for every bout within such a pairing.
+\end{compactitem}
+
+\myNewSlide
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\end{center}
+
+What can we say about $w$?
+
+
+\myNewSlide
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{ll}
+\multicolumn{2}{c}{$X$}\\
+\\
+$x_1 = 1$ & $x_{11} = 1$  \\
+$x_2 = 1$ & $x_{12} = 0$  \\
+$x_3 = 0$ & $x_{13} = 1$  \\
+$x_4 = 1$ & $x_{14} = 1$  \\
+$x_5 = 0$ & $x_{15} = 0$  \\
+$x_6 = 0$ & $x_{16} = 1$  \\
+$x_7 = 1$ & $x_{17} = 1$  \\
+$x_8 = 0$ & $x_{18} = 0$  \\
+$x_9 = 1$ & $x_{19} = 0$  \\
+$x_{10} = 1$ & $x_{20} = 1$  \\
+\end{tabular}
+\end{center}
+
+$$L(w) = \prod_{i=1}^{20} \Pr(x_i|w)$$
+
+
+\myNewSlide
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{ll}
+\multicolumn{2}{c}{$X$}\\
+\\
+$x_1 = 1$ & $x_{11} = 1$  \\
+$x_2 = 1$ & $x_{12} = 0$  \\
+$x_3 = 0$ & $x_{13} = 1$  \\
+$x_4 = 1$ & $x_{14} = 1$  \\
+$x_5 = 0$ & $x_{15} = 0$  \\
+$x_6 = 0$ & $x_{16} = 1$  \\
+$x_7 = 1$ & $x_{17} = 1$  \\
+$x_8 = 0$ & $x_{18} = 0$  \\
+$x_9 = 1$ & $x_{19} = 0$  \\
+$x_{10} = 1$ & $x_{20} = 1$  \\
+\end{tabular}
+\end{center}
+
+$$\Pr(x_{11} = 1 | x_{1} = 1, w) \neq \Pr(x_{11} = 1$$
+
+$$L(w) = \prod_{i=1}^{10} \Pr(x_i|w)\Pr(x_{10+i}|x_{i}, w)$$
+
+
+\myNewSlide
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{l}
+$Y$\\
+\\
+$y_1 = (1, 1)$   \\
+$y_2 = (1, 0)$  \\
+$y_3 = (0, 1)$  \\
+$y_4 = (1, 1)$  \\
+$y_5 = (0, 0)$  \\
+$y_6 = (0, 1)$  \\
+$y_7 = (1, 1)$  \\
+$y_8 = (0, 0)$  \\
+$y_9 = (1, 0)$  \\
+$y_{10} = (1, 1)$  \\
+\end{tabular}
+\end{center}
+
+
+$$L(w) = \prod_{i=1}^{10} \Pr(y_i|w)$$
+
+
+\myNewSlide
+0 = same ram wins both bouts\\
+1 = different rams win\\
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{l}
+$Z$\\
+\\
+$z_1 = 0$   \\
+$z_2 = 1$  \\
+$z_3 = 1$  \\
+$z_4 = 0$  \\
+$z_5 = 0$  \\
+$z_6 = 1$  \\
+$z_7 = 0$  \\
+$z_8 = 0$  \\
+$z_9 = 1$  \\
+$z_{10} = 0$  \\
+\end{tabular}
+\end{center}
+
+
+$$L(w) = \prod_{i=1}^{10} \Pr(z_i|w)$$
+
+
+\myNewSlide
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+& \multicolumn{2}{c|}{winner}\\
+Pair \# & bout 1 & bout 2 \\
+\hline
+1 & 1 & 1  \\
+\hline
+2 & 1 & 0  \\
+\hline
+3 & 0 & 1  \\
+\hline
+4 & 1 & 1  \\
+\hline
+5 & 0 & 0  \\
+\hline
+6 & 0 & 1   \\
+\hline
+7 & 1 & 1  \\
+\hline
+8 & 0 & 0  \\
+\hline
+9 & 1 & 0  \\
+\hline
+10 & 1 & 1   \\
+\hline
+\end{tabular}
+\begin{tabular}{l}
+$Z$\\
+\\
+$z_1 = 0$   \\
+$z_2 = 1$  \\
+$z_3 = 1$  \\
+$z_4 = 0$  \\
+$z_5 = 0$  \\
+$z_6 = 1$  \\
+$z_7 = 0$  \\
+$z_8 = 0$  \\
+$z_9 = 1$  \\
+$z_{10} = 0$  \\
+\end{tabular}
+\end{center}
+
+
+$$L(w) = \prod_{i=1}^{10} \Pr(z_i|w)$$
+$$ A = \sum_{i=1}^{10}z_i = 4$$
+$$L(w) = \Pr(Z=0|w)^{(n-A)}\Pr(Z=1|w)^{A}$$
+\end{document}
+
+\begin{center}
+\end{center}
+Based on prior studies, you would expect $x_i \sim \mathcal{N}(0,1)$.
+
+Consider the following data set collected from 5 randomly sampled birds following from this population, but following a year of drought:
+\begin{center}
+\begin{tabular}{c|c}
+Indiv. & standardized bill width \\
+\hline
+1 & 0.01009121 \\
+2 & 3.63415088 \\
+3 &-1.40851589 \\
+4 & 3.70573177 \\
+5 &-0.94145782
+\end{tabular}
+\end{center}
+{\bf Can you conclude that the mean bill width in the population has changed?}
+
+$$\bar{x} = 1$$
+

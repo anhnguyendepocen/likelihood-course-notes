@@ -1,0 +1,246 @@
+BIOL 701  Likelihood Methods in Biology: Homework #4
+Due Wednesday, March 30
+
+Background:
+
+You are interested in the proportion of crabs in a population that are 
+asymmetric with respect to claw size. A rival group has reported that half of
+the crabs in this species are asymmetric. You would like to test the null 
+hypothesis that the proportion of asymmetric individuals is 0.5.
+
+
+You sample individuals by placing a trap out, and checking it every day. You 
+catch one crab per day and release it after scoring it as 0 if its pincer lengths 
+are within 5% of each other, and 1 if they are more asymmetric
+than that.
+
+Here is your data for each day (conveniently formatted as a python list. The 
+same data appears at the end in a form that can be read by R):
+
+data = [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1,
+0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1,
+1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1]
+
+This dataset consist of 100 observations.  40 of them correspond to "asymmetric."
+
+You get back home and a colleague points out that the species that you worked
+on has a strong tendency to learn about small areas that it considers to be
+good hunting areas and return to those areas.  So your 100 observations are not
+necessarily independent - there is a good chance that the same individual will
+return to the trap location and be caught again.
+
+The crabs forget after a few hours.  So if you do not catch the same crab
+immediately then you probably won't recapture it during the rest of the study.
+
+
+Model:
+After further discussions, you decide that it is appropriate to analyze your data
+if you consider the there is some probability that the individual that you capture
+at day "i" is actually the same individual that was captured on day "i - 1".
+
+Call the probability of recapture of the same individual on consecutive days "r"
+and the probability of a randomly selected individual being asymmetric "a"
+
+You are going to treat the recapture events as independent events.  
+
+So the probability that you recapture the same individual in (at least)
+three consective days would simply be r*r, and the probability of catching the 
+same individual at least four times in a row would be r to the third power, etc. 
+
+You can assume that if you fail to recapture a crab on consective days then it 
+will be out of your study area for the remainder of the time.
+
+
+Assignment:
+    Part 1. Describe how you will calculate the likelihood in written form. Any 
+combination of prose and equations is fine.  The point of this part of the 
+problem is to describe the likelihood before you start to program it.
+
+    Part 2. Replace the log-likelihood calculation code in one of the "template"
+scripts. You can use R or python (or any other computational tools you like).
+
+    Part 3. Replace the data simulation code so that you create data sets 
+according to the null model (a=0.5) with the value of "r" that best fits the data
+when the null is enforced.
+
+    Part 4. Use your modified code to calculate the LRT statistic between for 
+the null hypothesis that a = 0.5 (which is what the "rival group" reported for 
+the probability of asymmetry).
+
+    Part 5. Run the parametric bootstrapping parts of the script which will use
+your simulator to generate new realizations. What is the approximate P-value for
+your test of the null hypothesis?
+
+
+
+
+Computational issues and hints:
+A python template to work from is posted at:
+    http://phylo.bio.ku.edu/slides/templateParametricBoot.py.txt
+You'll have to change parts that are flagged with TEXT IN ALL CAPS.
+
+
+
+After downloading the code, you can run it through python, assuming that you
+    have installed the SciPy package: a free download from http://www.scipy.org
+
+
+Python is white-space sensitive (remember that the blocks of code are denoted
+    using indentation).  Edit code in a plain text-editor, not a word processor.
+    Don't mix tabs and spaces.
+    
+
+For the template script, you can specify the parameters to constrain in the 
+    null hypothesis from the command line.  To indicate that a parameter is free
+    to vary in the null, then you pass in the word "None".  The last argument 
+    that you should supply on the command line is the number of parametric 
+    bootstrapping replicates.
+So, if you want to:
+    1. constrain the first parmeter to be 0.6 in the null hypotheses,
+    2. let the second parameter of the model vary in the null model, and
+    3. perform 1000 parametric bootstrapping replicates
+then the invocation that you would type at the terminal prompt would is:
+
+    python templateParametricBoot.py 0.6 None 1000
+
+
+On Windows:
+    Install python 2.6
+    Use can use the CMD.exe program to give you a command-line interface.
+    Use the "cd" to change the working directory of your terminal
+    Use the "dir" command lists the contents of your current directory
+    jEdit is a decent free text editor
+
+
+    
+On Linux:
+    - Use any standard terminal.
+On Mac:
+    - Use /Applications/Utilities/Terminal
+    - TextWrangler is a good free text editor
+On Linux or Mac:
+    - Use:
+        python --version
+       to see what version of python you have so that you can choose the appropriate
+       version of SciPy.
+    - Use the "cd" to change the working directory of your terminal
+    - Use the "ls" command lists the contents of your current directory
+
+
+
+
+
+
+
+################################################################################
+If you want to use R (or python) and read the data from a file, you can
+save the content below the following line of # characters into a file, data.txt
+so that R's 
+
+    d = read.table("data.txt", header=TRUE);
+
+syntax will read the tabular data.
+
+################################################################################
+asymm
+1
+0
+0
+0
+0
+0
+1
+1
+1
+1
+0
+0
+1
+0
+0
+1
+1
+0
+0
+0
+1
+1
+1
+1
+0
+1
+1
+0
+0
+0
+0
+0
+0
+0
+0
+0
+1
+1
+0
+0
+0
+0
+0
+0
+0
+1
+0
+1
+1
+0
+1
+1
+0
+1
+1
+1
+0
+0
+0
+1
+1
+1
+0
+0
+0
+0
+0
+0
+1
+1
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+1
+0
+1
+1
+1
+0
+0
+0
+0
+0
+1
+1
+0
+0
+1
+1
+0
+1
+1
+1
