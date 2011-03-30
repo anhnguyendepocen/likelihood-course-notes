@@ -1,15 +1,125 @@
 #!/usr/bin/env python
 
 from scipy import optimize
-from math import pow, log, exp
+from math import pow, log, exp, sqrt
 from random import random
 
+unprocessed_data = [{'age' : 20, 'CAD' : 0},
+{'age' : 23, 'CAD' : 0},
+{'age' : 24, 'CAD' : 0},
+{'age' : 25, 'CAD' : 1},
+{'age' : 25, 'CAD' : 0},
+{'age' : 26, 'CAD' : 0},
+{'age' : 26, 'CAD' : 0},
+{'age' : 28, 'CAD' : 0},
+{'age' : 28, 'CAD' : 0},
+{'age' : 29, 'CAD' : 0},
+{'age' : 30, 'CAD' : 0},
+{'age' : 30, 'CAD' : 0},
+{'age' : 30, 'CAD' : 1},
+{'age' : 30, 'CAD' : 0},
+{'age' : 30, 'CAD' : 0},
+{'age' : 30, 'CAD' : 0},
+{'age' : 32, 'CAD' : 0},
+{'age' : 32, 'CAD' : 0},
+{'age' : 33, 'CAD' : 0},
+{'age' : 33, 'CAD' : 0},
+{'age' : 34, 'CAD' : 0},
+{'age' : 34, 'CAD' : 0},
+{'age' : 34, 'CAD' : 1},
+{'age' : 34, 'CAD' : 0},
+{'age' : 34, 'CAD' : 0},
+{'age' : 35, 'CAD' : 0},
+{'age' : 35, 'CAD' : 0},
+{'age' : 36, 'CAD' : 1},
+{'age' : 36, 'CAD' : 0},
+{'age' : 36, 'CAD' : 0},
+{'age' : 37, 'CAD' : 1},
+{'age' : 37, 'CAD' : 0},
+{'age' : 37, 'CAD' : 0},
+{'age' : 38, 'CAD' : 0},
+{'age' : 38, 'CAD' : 0},
+{'age' : 39, 'CAD' : 1},
+{'age' : 39, 'CAD' : 0},
+{'age' : 40, 'CAD' : 1},
+{'age' : 40, 'CAD' : 0},
+{'age' : 41, 'CAD' : 0},
+{'age' : 41, 'CAD' : 0},
+{'age' : 42, 'CAD' : 0},
+{'age' : 42, 'CAD' : 0},
+{'age' : 42, 'CAD' : 1},
+{'age' : 42, 'CAD' : 0},
+{'age' : 43, 'CAD' : 0},
+{'age' : 43, 'CAD' : 0},
+{'age' : 43, 'CAD' : 1},
+{'age' : 44, 'CAD' : 0},
+{'age' : 44, 'CAD' : 1},
+{'age' : 44, 'CAD' : 1},
+{'age' : 44, 'CAD' : 0},
+{'age' : 45, 'CAD' : 0},
+{'age' : 45, 'CAD' : 1},
+{'age' : 46, 'CAD' : 0},
+{'age' : 46, 'CAD' : 1},
+{'age' : 47, 'CAD' : 1},
+{'age' : 47, 'CAD' : 0},
+{'age' : 47, 'CAD' : 0},
+{'age' : 48, 'CAD' : 0},
+{'age' : 48, 'CAD' : 1},
+{'age' : 48, 'CAD' : 1},
+{'age' : 49, 'CAD' : 1},
+{'age' : 49, 'CAD' : 0},
+{'age' : 49, 'CAD' : 0},
+{'age' : 50, 'CAD' : 1},
+{'age' : 50, 'CAD' : 0},
+{'age' : 51, 'CAD' : 0},
+{'age' : 52, 'CAD' : 1},
+{'age' : 52, 'CAD' : 0},
+{'age' : 53, 'CAD' : 1},
+{'age' : 53, 'CAD' : 1},
+{'age' : 54, 'CAD' : 1},
+{'age' : 55, 'CAD' : 1},
+{'age' : 55, 'CAD' : 1},
+{'age' : 55, 'CAD' : 0},
+{'age' : 56, 'CAD' : 1},
+{'age' : 56, 'CAD' : 1},
+{'age' : 56, 'CAD' : 1},
+{'age' : 57, 'CAD' : 1},
+{'age' : 57, 'CAD' : 1},
+{'age' : 57, 'CAD' : 0},
+{'age' : 57, 'CAD' : 1},
+{'age' : 57, 'CAD' : 0},
+{'age' : 57, 'CAD' : 1},
+{'age' : 58, 'CAD' : 0},
+{'age' : 58, 'CAD' : 1},
+{'age' : 58, 'CAD' : 1},
+{'age' : 59, 'CAD' : 1},
+{'age' : 59, 'CAD' : 1},
+{'age' : 60, 'CAD' : 0},
+{'age' : 60, 'CAD' : 1},
+{'age' : 61, 'CAD' : 1},
+{'age' : 62, 'CAD' : 1},
+{'age' : 62, 'CAD' : 1},
+{'age' : 63, 'CAD' : 1},
+{'age' : 64, 'CAD' : 1},
+{'age' : 64, 'CAD' : 0},
+{'age' : 65, 'CAD' : 1},
+{'age' : 69, 'CAD' : 1},
+]
+no_cad_age_list = []
+cad_age_list = []
 
+for datum in unprocessed_data:
+    if datum['CAD'] == 0:
+        no_cad_age_list.append(datum['age'])
+    else:
+        cad_age_list.append(datum['age'])
+############################################################################
+# Writing the data in this way will make the 0 element of real_data correspond
+#   to the list of ages that have a 0 "score" for CAD, and real_data[1] will
+#   hold the list of ages that have a score of 1
+############################################################################
 
-real_data = [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1,
-0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1,
-1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1]
+real_data = [no_cad_age_list, cad_age_list]
 
 ############################################################################
 # Begin model-specific initialization code
@@ -17,21 +127,16 @@ real_data = [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1
 # This is a list of values to try for the numerical optimizer.  The length of 
 #   this list is also used by some functions to determine the dimensionality
 #   of the model
-initial_parameter_guess = [.75, .75]
+initial_parameter_guess = [0.1, 0.1]
 
-# This is a list of parameter names to show. Modify this based on what order
-#   you want to use for the parameter list. It does not matter which order
-#   you choose, but you need to know what the program thinks of as the first
-#   and second parameters so that the output will make sense and your code
-#   that unpacks the parameter list will know whether the first parameter is
-#   the recapture probability or the probability of an individual being asymmetric
-#   You should put the names in quotes, so the line would look like:
+# This is a list of parameter names to show in statements that are printed on
+#   to standard output
 #  
 #   parameter_names = ['mu', 'sigma'] 
 #   
 #   for inference under the normal model.
 #
-parameter_names = ['a', 'r']
+parameter_names = ['intercept', 'slope']
 
 # we expect the number of parameters to be the same in both lists. This is a 
 #   sanity check that helps us see if we made a mistake.
@@ -53,63 +158,38 @@ def ln_likelihood(the_data, param_list):
     # Begin model-specific log-likelihood code
     ############################################################################
     first_param, second_param = param_list
-    a = first_param
-    r = second_param
 
     # do our "sanity-checking" to make sure that we are in the legal range of 
     #   the parameters.
     #
     if first_param != first_param or second_param != second_param:
         return float('-inf')
-    if (first_param < 0.0) or (first_param > 1.0):
-        return float('-inf')
-    if (second_param < 0.0) or (second_param > 1.0):
-        return float('-inf')
-
+    
+    intercept, slope = first_param, second_param
 
     ln_l = 0.0
     
-    # In our model, the first individual can't be a recapture, so this 
-    #   probability calculation is "special" Here we divide the data
-    #   into the first observation and a list that contains the remaining
-    #   data points.
-    #
-    first_observation = the_data[0]
-    remaining_observations = the_data[1:]
-    
-    if first_observation == 1:
-        p_datum = a
-    else:
-        p_datum = 1 - a
-    
-    ln_l = ln_l + log(p_datum)
+    #  The next lines will extract the data set into two lists:
+    #   no_cad_ages is a list of ages of individuals who do not show CAD
+    #   cad_ages is a list of ages of individuals diagnose with CAD
+    no_cad_ages = the_data[0]
+    cad_ages = the_data[1]
 
-    # In our model of recapturing individuals, the previous observation
-    #   is relevant to our current observation.  So we'll keep track of the
-    #   previous observation as the variable `previous`
-    #
-    previous = first_observation
+    # Now we can calculate the probabilities associated with all of the_data
+    #   CAD individuals
+    for age in no_cad_ages:
 
-    # Now we have to consider the rest of the data points
-    #
-    for datum in remaining_observations:
-        if datum == 1:
-            p_datum = (1-r)*a
-        else:
-            p_datum = (1-r)*(1-a)
-        if datum == previous:
-            p_datum = p_datum + r
+        prob_datum = SOME_CODE_GOES HERE
 
+        ln_l = ln_l + log(prob_datum)
 
-        # Add it to the log-likelihood
-        #
-        ln_l = ln_l + log(p_datum)
-        # Now we update the variable `previous` to reflect the latest outcome
-        #   so that in the next execution of this loop it really will refer
-        #   to the previous value
-        #
-        previous = datum
+    # Now we can calculate the probabilities associated with all of the_data
+    #   CAD individuals
+    for age in cad_ages:
 
+        prob_datum = SOME_OTHER_CODE_GOES HERE
+
+        ln_l = ln_l + log(prob_datum)
 
     if verbose:
         sys.stderr.write('ln_l = ' + str(ln_l) + '\n')
@@ -128,43 +208,44 @@ def simulate_data(template_data, param_list):
     ############################################################################
     # Begin model-specific simulation code
     ############################################################################
+    # We treat the ages in the real data as fixed effects, and we need to
+    # generate the CAD status for each individual.
+    first_param, second_param = param_list
 
-    n_observations = len(template_data)
+    # Firsh we get the full list of ages
+    all_ages = real_data[0] + real_data[1]
+    # next we create the list that is our simulated data set in the same form
+    #   as the real_data -- a pair of lists:
+    #   The first is a list of ages for no-CAD individuals, and
+    #   the second is a list of ages for CAD individuals
+    # You won't need to change the next 4 lines
+    age_list_for_no_CAD_sim = []
+    age_list_for_CAD_sim = []
+    sim_data_set = [age_list_for_no_CAD_sim, age_list_for_CAD_sim]
 
-    a, r = param_list
+    intercept, slope = first_param, second_param
+ 
 
-    if random() < a:
-        first_datum = 1
-    else:
-        first_datum = 0
-    sim_data_set = [first_datum]
-
-    previous_datum = first_datum
-    for sample_index in range(n_observations - 1):
+    for age in all_ages:
         # We will need to use some pseudo-random numbers generated from
         #   a Uniform distribution between 0 and 1 as the source
         #   of variability for our simulation.  
         # This is how we generate such a number and store it as `u` in Python
         #
-        u = random() 
-        # Each realization that you simulate may depend on the previous 
-        #   value simulated, so you will have to add some more logic here
-        #   to actually generate a data point under the model.
-        # Each datum that you simulate should be a 0 or a 1 (because that is
-        #   how we are recording the data in our real data set.
-        #
-        if u < r:
-            sim_datum = previous_datum
+        u = random()
+        SOME_CODE_FOR_CALCULATING_THE_PROB_OF_CAD_FOR_THIS_AGE
+        if SOME_CODE_USING_THIS_PROB_AND_U:
+            cad_status = 1
         else:
-            if random() < a:
-                sim_datum = 1
-            else:
-                sim_datum = 0
-        sim_data_set.append(sim_datum)
-        # This updates the `previous_datum` variable so that it is always accurate
-        #   when we execute a block of code in this "for loop"
-        #
-        previous_datum = sim_datum
+            cad_status = 0
+        
+        # After you have simulated a CAD status for an individual of this age
+        #    the next 4 lines record the age in the appropriate container.
+        #   You should not need to modify this code
+        if cad_status == 0:
+            age_list_for_no_CAD_sim.append(age)
+        else:
+            age_list_for_CAD_sim.append(age)
 
     return sim_data_set
     ############################################################################
@@ -309,7 +390,19 @@ def print_help():
 ''' + ' '.join(parg_list) +  ''' 1000
 
 ''')        
-        
+
+
+def summary_stats(v):
+    s = sum(v)
+    mean = s/float(len(v))
+    ss_dev = 0.0
+    for el in v:
+        dev = el - mean
+        dev_sq = dev*dev
+        ss_dev = ss_dev + dev_sq
+    var = ss_dev / len(v)
+    sd = sqrt(var)
+    return mean, sd
     
 if __name__ == '__main__':
     # user-interface and sanity checking...
@@ -375,13 +468,13 @@ if __name__ == '__main__':
     #
     if n_sims < 1:
         sys.exit(0)
-    print "Generating null distribution of LRT..."
+    print "Generating distribution of paprameter estimates"
 
-    # We'll write the simulated LRT values to the "standard error stream" which
-    #   is written to the screen when we run the program from a terminal.
+    # We'll write the parameter estimates from simulations to the "standard error
+    #   stream" which is written to the screen when we run the program from a terminal.
     # We could use:
-    #       pboot_out = open("param_boot.txt", "w")
-    # if we wanted to write the results to a file called "param_boot.txt"
+    #       pboot_out = open("est.txt", "w")
+    # if we wanted to write the results to a file called "est.txt"
     #
     pboot_out = sys.stderr
     pboot_out.write("rep\tlrt\n")
@@ -389,11 +482,12 @@ if __name__ == '__main__':
     # null_dist will be a list that holds all of the simulated LRT values. We
     # use [] to create an empty list.
     #
-    null_dist = []
+    est_intercept_list = []
+    est_slope_list = []
 
     # a "for loop" will repeat the following instructions n_sims times
     #
-    sim_params = null_mle_list[:-1]
+    sim_params = mle_list[:-1]
     for i in range(n_sims):
         # This simulates a data set assuming that the parameters are at the
         #   values that the take under the null hypothesis (since we want the
@@ -404,46 +498,26 @@ if __name__ == '__main__':
         # Calculate the LRT on the simulated data using the same functions that
         #   we used when we analyzed the real data
         #
-        sim_lrt, sim_mle_list, sim_null = calc_lrt_statistic(sim_data, null_params)
-
-        # Add the simulated LRT to our null distribution
-        #
-        null_dist.append(sim_lrt)
-
+        sim_mle = calc_global_ml_solution(sim_data)
+    
+        est_intercept = sim_mle[0]
+        est_slope = sim_mle[1]
+        est_intercept_list.append(est_intercept)
+        est_slope_list.append(est_slope)
         # Write the value to the output stream.  The str() function converts
         #   numbers to strings so that they can be written to the output stream
         #
         pboot_out.write(str(i + 1))
         pboot_out.write('\t')
-        pboot_out.write(str(sim_lrt))
+        pboot_out.write(str(est_intercept))
+        pboot_out.write('\t')
+        pboot_out.write(str(est_slope))
         pboot_out.write('\n')
 
-    # We want the most extreme (negative) values of the LRT from the simulations
-    #   if we sort the list, then these values will be at the front of the list
-    #   (available by indexing the list with small numbers)
-    #
-    null_dist.sort()
-
-    # We can report the value of the LRT that is smaller than 95% of the simulated
-    #   values...
-    #
-    n_for_p_point05 = int(0.05*n_sims)
-    print "5% critical value is approx =", null_dist[n_for_p_point05]
-
-    # And we can calculate the P-value for our data by counting the number of
-    #   simulated replicates that are more extreme than our observed data.
-    #   We do this by starting a counter at 0, walking through the stored
-    #   null distribution, and adding 1 to our counter every time we see a
-    #   simulated LRT that is more extreme than the "real" lrt.
-    #
-    n_more_extreme = 0
-    for v in null_dist:
-        if v <= lrt:
-            n_more_extreme = n_more_extreme + 1
-        else:
-            break
-    # Then we express this count of the number more extreme as a probability
-    #    that a simulated value would be more extreme than the real data.
-    #
-    print "Approx P-value =", n_more_extreme/float(n_sims)
-
+    intercept_mean, intercept_sd = summary_stats(est_intercept_list)
+    slope_mean, slope_sd = summary_stats(est_slope_list)
+    print "Based on", str(n_sims), " simulations from", str(sim_params[0:2])
+    print "the standard error estimate of the intercept was ", intercept_sd
+    print "the standard error estimate of the slope was ", slope_sd
+    print
+    print "The means of the estimates were (", intercept_mean, ",", slope_mean, ")"

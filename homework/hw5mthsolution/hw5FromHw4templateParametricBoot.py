@@ -129,13 +129,8 @@ real_data = [no_cad_age_list, cad_age_list]
 #   of the model
 initial_parameter_guess = [0.1, 0.1]
 
-# This is a list of parameter names to show. Modify this based on what order
-#   you want to use for the parameter list. It does not matter which order
-#   you choose, but you need to know what the program thinks of as the first
-#   and second parameters so that the output will make sense and your code
-#   that unpacks the parameter list will know whether the first parameter is
-#   the recapture probability or the probability of an individual being asymmetric
-#   You should put the names in quotes, so the line would look like:
+# This is a list of parameter names to show in statements that are printed on
+#   to standard output
 #  
 #   parameter_names = ['mu', 'sigma'] 
 #   
@@ -181,21 +176,24 @@ def ln_likelihood(the_data, param_list):
 
     ln_l = 0.0
     
-    # In our model, the first individual can't be a recapture, so this 
-    #   probability calculation is "special" Here we divide the data
-    #   into the first observation and a list that contains the remaining
-    #   data points.
-    #
+    #  The next lines will extract the data set into two lists:
+    #   no_cad_ages is a list of ages of individuals who do not show CAD
+    #   cad_ages is a list of ages of individuals diagnose with CAD
     no_cad_ages = the_data[0]
     cad_ages = the_data[1]
+
+    # Now we can calculate the probabilities associated with all of the_data
+    #   CAD individuals
     for age in no_cad_ages:
         p = logit_p_for_age(intercept, slope, age)
-        p_datum = 1 - p
-        ln_l = ln_l + log(p_datum)
+        prob_datum = 1 - p
+        ln_l = ln_l + log(prob_datum)
 
+    # Now we can calculate the probabilities associated with all of the_data
+    #   CAD individuals
     for age in cad_ages:
-        p_datum = logit_p_for_age(intercept, slope, age)
-        ln_l = ln_l + log(p_datum)
+        prob_datum = logit_p_for_age(intercept, slope, age)
+        ln_l = ln_l + log(prob_datum)
 
     if verbose:
         sys.stderr.write('ln_l = ' + str(ln_l) + '\n')

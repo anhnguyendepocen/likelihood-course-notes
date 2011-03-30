@@ -121,18 +121,29 @@
 \unitlength=1mm
 
 \myNewSlide
-You suspect that a population of big horn sheep are made up of two classes of males based on their sparring ability: Strong and Weak. The proportion of strong individuals is unknown.\\ {\bf Experiment:}
-\begin{compactitem}
-	\item You randomly select 10 pairs of males from a large population. 
-	\item For each pair you randomly assign one of them the ID 0 and the other the ID 1.  
-	\item You record the \# of winner from 2 contests.
-\end{compactitem}
-{\bf Model:}
-\begin{compactitem}
-	\item If two individuals within the same class fight, you expect either outcome to be equally likely.
-	\item If a Strong is paired against a Weak then you expect that the probability that the stronger one wins with some probability, $w$.
-	\item $w$ is assumed to be the same for every pairing of Strong {versus} Weak and the same for every bout within such a pairing.
-\end{compactitem}
+\Large
+Numerical optimization -- minimizing a function by evaluating it at many trial points.
+
+Main points:
+\begin{compactenum}
+	\item optimizers can fail to find the global optimum:
+	\begin{compactenum}
+		\item multiple modes are a problem.
+		\item result is often starting point dependent.
+	\end{compactenum}
+	\item limited precision in computers $\rightarrow$ rounding error, which complicates termination criteria.
+\end{compactenum}
+
+\myNewSlide
+\Large
+Numerical optimization -- practical recommendations.
+\begin{compactenum}
+	\item Try multiple starting points.
+	\item Try multiple optimization algorithms.
+	\item Don't skimp on optimization in your parametric bootstrapping (or at least make sure that the search for the global optimum is a good search).
+	\item Reparameterization can help
+	\item Using derivatives from finite differences can be surprisingly effective -- consider BFGS even if you can't calculate the gradient.
+\end{compactenum}
 
 \myNewSlide
 \begin{center}
