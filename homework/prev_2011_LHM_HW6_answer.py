@@ -32,7 +32,7 @@ def read_data(filepath):
     if not os.path.exists(filepath):
         raise ValueError('The file "' + filepath + '" does not exist')
     
-    
+    MAX_TREATMENT_VALUE = 1
     # Here we create a csv reader and tell it that a tab (\t) is the column delimiter
     entries = csv.reader(open(filepath, 'rb'), delimiter='\t')
 
@@ -59,9 +59,9 @@ def read_data(filepath):
             raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer for individual ID, but got ' + str(ind_id))
         try:
             treatment_id = int(treatment_id)
-            assert(treatment_id == 0 or treatment_id == 1)
+            assert(treatment_id >= 0 and treatment_id <= MAX_TREATMENT_VALUE)
         except:
-            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting 0 or 1 for the treatment ID, but got ' + str(treatment_id))
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer in the range [0, ' + str(MAX_TREATMENT_VALUE) + '] for the treatment ID, but got ' + str(treatment_id))
         try:
             value = float(value)
         except:
@@ -69,7 +69,7 @@ def read_data(filepath):
         # a new family corresponds to an empty dictionary of individuals
         #   for the 0, and 1 treatment. So we can create a list with two empty
         #   dictionaries as the "blank" entry.
-        empty_family_entry = ({}, {})
+        empty_family_entry = [{} for i in range(MAX_TREATMENT_VALUE + 1)]
         fam_array = by_family.setdefault(fam_id, empty_family_entry)
         # now we grab the appropriate one for this treatment
         fam_treatment_dict = fam_array[treatment_id]
@@ -99,8 +99,8 @@ def read_data(filepath):
         treatment_dict_pair = by_family[fam_id]
         status_stream.write("    Family index=" + str(i) + " (id in datafile = " + str(fam_id) + "):\n")
         mat = data_m[i]
-        copy_data_from_dict_to_mat(treatment_dict_pair, 0, mat, status_stream)
-        copy_data_from_dict_to_mat(treatment_dict_pair, 1, mat, status_stream)
+        for j in xrange(MAX_TREATMENT_VALUE + 1):
+            copy_data_from_dict_to_mat(treatment_dict_pair, j, mat, status_stream)
     status_stream.write("Data as a python list:\n" + repr(data_m) + "\n")
     return data_m
 
