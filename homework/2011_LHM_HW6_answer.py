@@ -6,9 +6,9 @@ from random import random, normalvariate
 import copy
 import numpy
 
-verbose = True
+verbose = False
   
-
+USE_FMIN = False
 
 
 
@@ -114,7 +114,8 @@ def read_data(filepath):
 #   this list is also used by some functions to determine the dimensionality
 #   of the model
 initial_parameter_guess = [-.5, .5, 0.2, 0.2, 0.2]
-
+MIN_VARIANCE = 1e-6
+parameter_bounds = [(None, None), (None, None), (0.0, None), (0.0, None), (MIN_VARIANCE, None), ]
 # This is a list of parameter names to show. Modify this based on what order
 #   you want to use for the parameter list. It does not matter which order
 #   you choose, but you need to know what the program thinks of as the first
@@ -378,16 +379,23 @@ def calc_global_ml_solution(data):
         return -ln_likelihood(data, x)
 
     x0 = initial_parameter_guess
-    solution = optimize.fmin_l_bfgs_b(scipy_ln_likelihood, 
-                                      x0,
-                                      bounds=((None, None), (None, None), (0, None), (0, None), (0, None)),
-                                      approx_grad=True,
-                                      epsilon=1e-8,
-                                      disp=False)
-    solution = list(solution)
+    if USE_FMIN:
+        solution = optimize.fmin(scipy_ln_likelihood, 
+                                          x0,
+                                          xtol=1e-8,
+                                          disp=False)
+    else:
+        opt_blob = optimize.fmin_l_bfgs_b(scipy_ln_likelihood, 
+                                          x0,
+                                          bounds=parameter_bounds,
+                                          approx_grad=True,
+                                          epsilon=1e-8,
+                                          disp=False)
+        solution = list(opt_blob[0])
     ln_l = -scipy_ln_likelihood(solution)
     solution.append(ln_l)
     return solution
+        
 
 def calc_null_ml_solution(data, param_constraints):
     '''This function allows us to optimize those parameters that are set to 
@@ -396,10 +404,13 @@ def calc_null_ml_solution(data, param_constraints):
     '''
     x0 = []
     adaptor_list = []
+    constr_bounds = []
     for i, val in enumerate(initial_parameter_guess):
         if i >= len(param_constraints) or param_constraints[i] == None:
             x0.append(val)
+            constr_bounds.append(parameter_bounds[i])
             adaptor_list.append(None)
+            
         else:
             adaptor_list.append(param_constraints[i])
     
@@ -424,12 +435,20 @@ def calc_null_ml_solution(data, param_constraints):
         return -ln_likelihood(data, all_params)
         
     if len(x0) > 0:
-        solution = optimize.fmin_l_bfgs_b(constrained_scipy_ln_likelihood,
-                                 x0,
-                                 bounds=((None, None), (0, None), (0, None), (0, None)),
-                                 approx_grad=True,
-                                 epsilon=1e-8,
-                                 disp=False)
+        if USE_FMIN:
+            solution = optimize.fmin(constrained_scipy_ln_likelihood,
+                                     x0,
+                                     xtol=1e-8,
+                                     disp=False)
+            
+        else:
+            opt_blob = optimize.fmin_l_bfgs_b(constrained_scipy_ln_likelihood,
+                                     x0,
+                                     bounds=constr_bounds,
+                                     approx_grad=True,
+                                     epsilon=1e-8,
+                                     disp=False)
+            solution = opt_blob[0]
         all_params = intercalate_constraints(solution)
     else:
         all_params = list(param_constraints)
@@ -460,9 +479,6 @@ def calc_lrt_statistic(data, null_params):
     #
     global_max_ln_l = global_mle[-1]
     null_max_ln_l = null_mle[-1]
-    print global_mle
-    print null_mle
-
     # Now we can calculate the likelihood ratio test statistic, and return
     #   it as well as the global and null solutions
     #
