@@ -8,101 +8,7 @@ import numpy
 
 verbose = False
   
-USE_FMIN = False
-
-
-
-def copy_data_from_dict_to_mat(treatment_dict_pair, treat_id, matrix, status_stream):
-    treat_inds = treatment_dict_pair[treat_id]
-    tk = treat_inds.keys()
-    tk.sort()
-    status_stream.write( "        " + str(len(tk)) + " individuals in treatment " + str(treat_id) + ":\n")
-    row = matrix[treat_id]
-    for j, ind_id in enumerate(tk):
-        value = treat_inds[ind_id]
-        status_stream.write( "           Indiv. index=" + str(j) + " (id in datafile = " + str(ind_id) + ") value = " + str(value) + "\n")
-        row.append(value)
-
-
-def read_data(filepath):
-    '''Reads filepath as a tab-separated csv file and returns a 3dimensional data matrix.'''
-    import os
-    import csv
-    import itertools
-    if not os.path.exists(filepath):
-        raise ValueError('The file "' + filepath + '" does not exist')
-    
-    MAX_TREATMENT_VALUE = 1
-    # Here we create a csv reader and tell it that a tab (\t) is the column delimiter
-    entries = csv.reader(open(filepath, 'rb'), delimiter='\t')
-
-    # Here we check that file has the headers that we exect
-    first_row = entries.next()
-    expected_headers = ['family', 'treatment', 'individual', 'trait']
-    for got, expected in itertools.izip(first_row, expected_headers):
-        if got.lower().strip() != expected:
-            raise ValueError('Error reading "' + filepath + '": expecting a column labelled "' + expected + '", but found "' + got + '" instead.')
-
-    # It is not too hard to have this loop put the data in the right spot in the
-    #   matrix, so that the data file can be somwhat flexible.
-
-    by_family = {}
-    for n, row in enumerate(entries):
-        fam_id, treatment_id, ind_id, value = row
-        try:
-            fam_id = int(fam_id)
-        except:
-            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer for family ID, but got ' + str(fam_id))
-        try:
-            ind_id = int(ind_id)
-        except:
-            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer for individual ID, but got ' + str(ind_id))
-        try:
-            treatment_id = int(treatment_id)
-            assert(treatment_id >= 0 and treatment_id <= MAX_TREATMENT_VALUE)
-        except:
-            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer in the range [0, ' + str(MAX_TREATMENT_VALUE) + '] for the treatment ID, but got ' + str(treatment_id))
-        try:
-            value = float(value)
-        except:
-            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an number for the trait value, but got ' + str(ind_id))
-        # a new family corresponds to an empty dictionary of individuals
-        #   for the 0, and 1 treatment. So we can create a list with two empty
-        #   dictionaries as the "blank" entry.
-        empty_family_entry = [{} for i in range(MAX_TREATMENT_VALUE + 1)]
-        fam_array = by_family.setdefault(fam_id, empty_family_entry)
-        # now we grab the appropriate one for this treatment
-        fam_treatment_dict = fam_array[treatment_id]
-        if ind_id in fam_treatment_dict:
-            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": a trait value for an individual with family=' + str(fam_id) + ' treatment=' + str(treatment_id) + ' ind=' + ind_id + ' has already been encountered!')
-        fam_treatment_dict[ind_id] = value
-
-    fam_keys = by_family.keys()
-    fam_keys.sort()
-
-    # Now we create the data matrix. We'll interpret the values in the first
-    #   3 columns of the data as the "indices" in our 3D array.  Python uses 
-    #   indexing that starts with 0, so the first element should be from
-    #   family 0, diet treatment 0, and indiv 0. 
-    # This is more complex than you may expect because we'd like to keep the
-    #   internal indexing in the same order as the indexing in the data file,
-    #   but it would also be nice if we could remove families from the data
-    #   file without being forced to renumber everything.
-    # So, as we create the matrix, we'll crunch the entries to skip over 
-    #   absent families and we'll be verbose in pointing out how the internal
-    #   indexing corresponds to the indexing in the input file...
-    status_stream = sys.stdout
-    status_stream.write("Data read for " + str(len(fam_keys)) + " families...\n")
-    empty_family_matrix = [[], []]
-    data_m = [copy.deepcopy(empty_family_matrix) for i in fam_keys]
-    for i, fam_id in enumerate(fam_keys):
-        treatment_dict_pair = by_family[fam_id]
-        status_stream.write("    Family index=" + str(i) + " (id in datafile = " + str(fam_id) + "):\n")
-        mat = data_m[i]
-        for j in xrange(MAX_TREATMENT_VALUE + 1):
-            copy_data_from_dict_to_mat(treatment_dict_pair, j, mat, status_stream)
-    status_stream.write("Data as a python list:\n" + repr(data_m) + "\n")
-    return data_m
+_use_fmin = False
 
 
 
@@ -110,12 +16,56 @@ def read_data(filepath):
 ############################################################################
 # Begin model-specific initialization code
 ############################################################################
+
+############################################################################
+# Here declare a "class" that allows us to bundle together different pieces
+#   of information about our data in a convenient bundle. The read_data 
+#   function and simulate data function will create "Skink" objects, and 
+#   store them in a list.
+#
+# Specifically the data_list will have an element for each mating group.
+#
+# Each of these elements will consist of three lists - one for each diet
+#   treatment.  Specifically, if group_data is the data for one mating group 
+#   (foursome), then:
+#       group_data[0] will be a list of individuals exposed to the "Small"
+#               insect diet,
+#       group_data[1] will be a list of individuals exposed to the "Medium"
+#               insect diet, and 
+#       group_data[2] will be a list of individuals exposed to the "Large"
+#               insect diet.
+# Each of this lists will be a list of "Skink objects"
+#
+# If s1 and s2 refer to two different Skink objects then you can see if they
+#   share a mother using code like this:
+#
+#   if s1.mom == s2.mom:
+#       here is a block of code to execute for shared mothers
+#   else:
+#       here is a block of code to execute for distinct mothers
+# 
+# Note that we use the "." operator to examine an attribute inside the "Skink"
+#   objects.  The objects are just a convenient way to keep info on mom, dad,
+#   treatment, and y-value (the dependent variable, growth rate) bundled
+#   together.
+############################################################################
+class Skink(object):
+    def __init__(self, mom, dad, treatment, y):
+        self.mom = mom
+        self.dad = dad
+        self.treatment = treatment
+        self.y = y
+    def __repr__(self):
+        return "Skink(mom=" + str(self.mom) + ", dad=" + str(self.dad) + ", treatment=" + str(self.treatment) + ", y=" + str(self.y) + ")"
+    def __str__(self):
+        return self.repr()
+
+
+
 # This is a list of values to try for the numerical optimizer.  The length of 
 #   this list is also used by some functions to determine the dimensionality
 #   of the model
-initial_parameter_guess = [-.5, .5, 0.2, 0.2, 0.2]
-MIN_VARIANCE = 1e-6
-parameter_bounds = [(None, None), (None, None), (0.0, None), (0.0, None), (MIN_VARIANCE, None), ]
+initial_parameter_guess = [10.0, 10.0, 10.0, 1, 4 ]
 # This is a list of parameter names to show. Modify this based on what order
 #   you want to use for the parameter list. It does not matter which order
 #   you choose, but you need to know what the program thinks of as the first
@@ -128,7 +78,18 @@ parameter_bounds = [(None, None), (None, None), (0.0, None), (0.0, None), (MIN_V
 #   
 #   for inference under the normal model.
 #
-parameter_names = ['alpha0', 'alpha1', 'varFam', 'varInteraction', 'varError']
+parameter_names = ['mu_S', 'mu_M', 'mu_L', 'var_G', 'var_Error']
+
+
+# This version of the program will us the L-BFGS constrained optimization
+#   approach to maximize the likelihood.  
+# Here we'll specify bounds for each of the parameters as pairs (min, max) which
+#   specify the minimum and maximum value.  If a parameter is unbounded we can 
+#   simply list None as the bound.
+# Allowing var_Error to be 0 can result in numerical problems as the lnL goes to
+#   very small numbers.  Putting a lower bound will avoid this.
+min_var_error = 1e-6
+parameter_bounds = [(None, None), (None, None), (None, None), (0.0, None), (min_var_error, None), ]
 
 # we expect the number of parameters to be the same in both lists. This is a 
 #   sanity check that helps us see if we made a mistake.
@@ -137,6 +98,48 @@ assert(len(initial_parameter_guess) == len(parameter_names))
 ############################################################################
 # End model-specific initialization code
 ############################################################################
+
+
+
+
+def calculate_incidence_row_for_indiv(skink):
+    '''This function should return a python list. This list will be a single
+    row in the incidence matrix.  
+    It should contain a coefficient (e.g. 1 or 0) for each of the parameters 
+    that appear in the equation of the linear predictor for this particular 
+    skink.
+    
+    The incidence matrix will be multiplied by a parameter values. So the length
+    of each row that you return here should be equal to the number of parameters
+    
+    '''
+    
+    treatment = skink.treatment
+    mom = skink.mom
+            if treatment_index == 0:
+                the_incidence_matrix_row = [1, 0, 0]
+            elif treatment_index == 1:
+                the_incidence_matrix_row = [0, 1, 0]
+            else:
+                the_incidence_matrix_row = [0, 0, 1]
+
+
+
+THE_INCIDENCE_MATRIX = None
+
+def calculate_incidence_matrix(the_data):
+    '''This function is called to fill in the incidence matrix for the model.
+    
+    '''
+    global THE_INCIDENCE_MATRIX
+    the_incidence_matrix_row_list = []
+    for foursome_index, foursome_data in enumerate(the_data):
+        for treatment_index, indiv_data in enumerate(foursome_data):
+            for indiv in indiv_data:
+                the_incidence_matrix_row = calculate_incidence_row_for_indiv(indiv):
+                the_incidence_matrix_row_list.append(the_incidence_matrix_row)
+    THE_INCIDENCE_MATRIX = numpy.matrix(the_incidence_matrix_row_list)
+
 
 
 
@@ -175,27 +178,35 @@ def invert_block_diagonal(block_list):
         inv_block_list.append(inv_block)
     return block_diag(*inv_block_list)
 
-def determinant_block_diagonal(block_list):
-    det = 1.0
+def ln_determinant_block_diagonal(block_list):
+    det = 0.0
     for block in block_list:
-        det = det* numpy.linalg.det(block)
+        det = det + log(numpy.linalg.det(block))
     return det
+
+    
     
 def ln_likelihood(the_data, param_list):
     '''Calculates the log-likelihood of the parameter values in `param_list`
     based on `the_data`
     '''
+    global THE_INCIDENCE_MATRIX
     if verbose:
         sys.stderr.write('param = ' + str(param_list) + '\n')
     ############################################################################
     # Begin model-specific log-likelihood code
     ############################################################################
     first_p, second_p, third_p, fourth_p, fifth_p = param_list
-    alpha0 = first_p
-    alpha1 = second_p
-    var_fam = third_p
-    var_interaction = fourth_p
+    mu0 = first_p
+    mu1 = second_p
+    mu2 = third_p
+    var_g = fourth_p
     var_error = fifth_p
+    
+    blocked_by_foursome = the_data[0]
+    observed_values = the_data[1]
+    foursome_sizes = the_data[2]
+    flattened_data = the_data[3]
     
     # do our "sanity-checking" to make sure that we are in the legal range of 
     #   the parameters.
@@ -203,93 +214,90 @@ def ln_likelihood(the_data, param_list):
     for p in param_list:
         if p != p:
             return float('-inf')
-    if var_fam < 0.0:
-        return float('-inf')
-    if var_interaction < 0.0:
+    if var_g < 0.0:
         return float('-inf')
     if var_error < 0.0:
         return float('-inf')
 
-    expected_values = []
-    observed_values = []
 
-    for fam_index, family_data in enumerate(the_data):
-        for treatment_index, indiv_data in enumerate(family_data):
-            # Every individual from the same family/treatment combination will
-            #   have the same expected value, so we can calculate it once
-            num_indiv = len(indiv_data)
-            
-            if treatment_index == 0:
-                expected = alpha0
-            else:
-                expected = alpha1
-        
-            exp_this_fam_treat = [expected]*num_indiv
-            expected_values.extend(exp_this_fam_treat)
-            
-            observed_values.extend(indiv_data)
+    FIXED_EFFECT_LIST = [HERE IS WHERE YOU LIST THE PARAMETERS THAT ARE MULTIPLIED BY THE INCIDENCE MATRIX]
+    
+    
+    fixed_effects = numpy.matrix().transpose()
+    
+    expected_values = THE_INCIDENCE_MATRIX*fixed_effects
     
 
     non_zero_covariance_blocks = list()
 
-    var_individ = var_fam + var_interaction + var_error
-    covar_same_fam_treatment = var_fam + var_interaction
-    covar_same_fam = var_fam
+    var_individ = var_g + var_g + var_error
+    covar_full_sibs = var_g + var_g
+    covar_same_mom = var_g
+    covar_same_dad = var_g
+    covar_same_foursome = 0.0
     
-    for fam_index, family_data in enumerate(the_data):
-        treatment_0 = family_data[0]
-        num_treatment_0 = len(treatment_0)
-        treatment_1 = family_data[1]
-        num_treatment_1 = len(treatment_1)
-        num_in_family = num_treatment_0 + num_treatment_1
+    for foursome_index, foursome_data in enumerate(flattened_data):
+        num_in_foursome = foursome_sizes[foursome_index]
         
-        # make an empty covariance matrix for this family...
-        empty_row = [None]*num_in_family
-        family_cov = [copy.copy(empty_row) for i in xrange(num_in_family)]
-        for i in range(num_in_family):
-            i_in_treat_0 = i < num_treatment_0
-            for j in range(i, num_in_family):
+        # make an empty covariance matrix for this foursome...
+        empty_row = [None]*num_in_foursome
+        foursome_cov = [copy.copy(empty_row) for i in xrange(num_in_foursome)]
+        
+        for i, skink_i in enumerate(foursome_data):
+            for j in range(i, num_in_foursome):
+                skink_j = foursome_data[j]
+
+                ################################################################
+                # here we need to fill in foursome_cov[i][j] with the
+                # covariance for skink_i and skink_j
+                #
+                # We'll do this by examining the attributes (such as skink_i.mom 
+                #   and skink_i.dad) in skink_i and skink_j to fill in cov_element
+                #
+                # and then storing cov_element
+                ################################################################
                 if i == j:
-                    family_cov[i][i] = var_individ
+                    cov_element = var_individ
                 else:
-                    j_in_treat_0 = j < num_treatment_0
-                    both_treat_0 =  i_in_treat_0 and j_in_treat_0
-                    both_treat_1 = (not i_in_treat_0) and (not j_in_treat_0)
-                    if both_treat_0 or both_treat_1:
-                        family_cov[i][j] = covar_same_fam_treatment
-                        family_cov[j][i] = covar_same_fam_treatment
+                    if skink_i.mom == skink_j.mom:
+                        if skink_i.dad == skink_j.dad:
+                            cov_element = covar_full_sibs
+                        else:
+                            cov_element = covar_same_mom
                     else:
-                        family_cov[i][j] = var_fam
-                        family_cov[j][i] = var_fam
+                        if skink_i.dad == skink_j.dad:
+                            cov_element = covar_same_dad
+                        else:
+                            cov_element = covar_same_foursome
+                ################################################################
+                # this is where we store the covariance element (the cov matrix
+                # is symmetric, so we store it in (i, j) and (j, i)
+                ################################################################
+                foursome_cov[i][j] = cov_element
+                foursome_cov[j][i] = cov_element
         # append this non-zero part of the covariance matrix to a list
         #   that will be used to represent a block diagonal matrix for all 
         #   measurements.
         # first we'll convert it from a python list of lists to a numpy matrix
-        numpy_fam_cov = numpy.matrix(family_cov)
+        numpy_fam_cov = numpy.matrix(foursome_cov)
         non_zero_covariance_blocks.append(numpy_fam_cov)
 
+    # here we calculate the inverse (exploiting the block diagonal structure)
     inverse_var = invert_block_diagonal(non_zero_covariance_blocks)
-    #print "inverse_var =", inverse_var
-    #print "inverse_var.__class__ =", inverse_var.__class__
-    #print "inverse_var.shape =", inverse_var.shape
-    determinant = determinant_block_diagonal(non_zero_covariance_blocks)
-    expected_values_column = numpy.matrix(expected_values)
-    #print "expected_values =", expected_values_column
-    #print "expected_values.shape =", expected_values_column.shape
-    observed_values_column = numpy.matrix(observed_values)
-    #print "observed_values =", observed_values_column
-    residuals_column = expected_values_column - observed_values_column
-    #print "residuals=", residuals_column
-    #print "residuals.__class__=", residuals_column.__class__
-    #print "residuals.shape =", residuals_column.shape
-    resid_row = residuals_column.transpose()
-    #print "transposed_resid=", resid_row
-    vr = inverse_var*resid_row
-    #print "vr = ",vr
+
+    # here we calculate the log of the determinant (exploiting the block diagonal structure)
+    ln_determinant = ln_determinant_block_diagonal(non_zero_covariance_blocks)
+
+    # We can calculate residuals by substracting observed_values from
+    #   expected_values.  When we convert the python lists of values 
+    #   to numpy.matrix objects, we get a column matrix. 
+    residuals_column = expected_values - observed_values
+
+    # We can transpose the column vector of residuals to get a row...
+    residuals_row = residuals_column.transpose()
     
-    scaled_dev_sq = residuals_column*vr
-    #print "scaled_dev_sq =",scaled_dev_sq
-    ln_l = -0.5*(log(determinant) + float(scaled_dev_sq))
+    scaled_dev_sq = residuals_row*inverse_var*residuals_column
+    ln_l = -0.5*(ln_determinant + float(scaled_dev_sq))
 
     if verbose:
         sys.stderr.write('ln_l = ' + str(ln_l) + '\n')
@@ -310,46 +318,74 @@ def simulate_data(template_data, param_list):
     ############################################################################
 
     first_p, second_p, third_p, fourth_p, fifth_p = param_list
-    alpha0 = first_p
-    alpha1 = second_p
-    var_fam = third_p
-    var_interaction = fourth_p
+    mu0 = first_p
+    mu1 = second_p
+    mu2 = third_p
+    var_g = fourth_p
     var_error = fifth_p
-
-    sd_fam = sqrt(var_fam)
-    sd_interaction = sqrt(var_interaction)
-    sd_error = sqrt(var_error)
     
-    expected_values = [alpha0, alpha1]
-    sim_family_list = []
-    for template_fam in template_data:
-        # draw a random family effect
-        family_effect = normalvariate(0, sd_fam)
-        sim_family = []
-        for treatment_index in [0, 1]:
-            # draw a random interaction effect
-            interaction_effect = normalvariate(0, sd_interaction)
-            
-            # calculate the expected value of individual (given the treatment,
-            #   family, and interaction effects
-            treatment_expected = expected_values[treatment_index]
-            fam_treat_expected = treatment_expected + family_effect + interaction_effect
-            
-            # Figure out how many individuals in this family x treatment group
-            #
-            temp_family_treatment = template_fam[treatment_index]
-            num_in_fam_treatment = len(temp_family_treatment)
-            # simulate that many values
-            sim_value_list = []
-            for i in range(num_in_fam_treatment):
-                sim_value = normalvariate(fam_treat_expected, sd_error)
-                sim_value_list.append(sim_value)
-            # store these simulated values
-            sim_family.append(sim_value_list)
-        # store this family in the list of simulated families
-        sim_family_list.append(sim_family)
+    sd_g = sqrt(var_g)
+    sd_error = sqrt(var_error)
+    treatment_effects = [mu0, mu1, mu2]
 
-    return sim_family_list
+    # Here we'll grab the form of the data that is a list for each family
+    #   there will be a list of all of the Skinks in that family.  We can
+    #   use the skink.mom, skink.dad, skink.treatment attributes of each Skink
+    #   to figure out mom, dad, and treatment
+    by_foursome_list = template_data[3]
+
+
+
+    ####################################################################
+    # We'll walk through each foursome, simulating new values for the response "y"
+    #
+    # NOTE: We are going to modify the data "in-place" in this simulation (unlike
+    #   previous simulations where we left the original data untouched).
+    ####################################################################
+    for foursome_data in by_foursome_list:
+        # each foursome has 4 random variables, the parental effects...
+        mom0_effect = normalvariate(0, sd_g)
+        mom1_effect = normalvariate(0, sd_g)
+        dad0_effect = normalvariate(0, sd_g)
+        dad1_effect = normalvariate(0, sd_g)
+        
+        # YOU_WILL_NEED_SOME_CODE_AROUND_HERE_TO_SIMULATE_RANDOM_VARIABLES_FOR_THIS_FOURSOME
+        ####################################################################
+        # We'll walk through each skink in the foursome and simulate a value...
+        ####################################################################
+        for skink in foursome_data:
+            t_effect = treatment_effects[skink.treatment]
+            if skink.mom == 0:
+                m_effect = mom0_effect
+            else:
+                m_effect = mom1_effect
+            if skink.mom == 0:
+                d_effect = dad0_effect
+            else:
+                d_effect = dad1_effect
+            
+            full_effect = t_effect + m_effect + d_effect
+            SIM_VALUE = normalvariate(full_effect, sd_error)
+
+            # YOU_WILL_NEED_SOME_CODE_AROUND_HERE_TO_SIMULATE_A_RESPONSE_FOR_THIS_SKINK
+            
+            ####################################################################
+            # Here we can record SIM_VALUE as this skink's response. This
+            #   this will complete our simulation of a dependent variable for
+            #   this individual skink.
+            ####################################################################
+            skink.y = SIM_VALUE
+
+    # This is a bit cryptic... Our simulation has been modifying the Skink objects
+    #   in by_foursome_list. Because these *same* skink objects are also stored
+    #   in the first element of template_data (in a form that more clearly 
+    #   reveals the factorial nature of the study), we can call process_data
+    #   on template_data[0] to transform the simulated data to make it easier 
+    #   to process each simulation.
+    # process_data is also called by read_data.  So we are really just using this
+    #   function to put our simulations into the same structure as the original
+    #   data. 
+    return process_data(template_data[0])
     ############################################################################
     # End model-specific simulation code
     ############################################################################
@@ -361,7 +397,7 @@ def simulate_data(template_data, param_list):
 # YOU SHOULD NOT HAVE TO MODIFY THE CODE BELOW THIS POINT !!!
 ################################################################################
 
-def calc_global_ml_solution(data):
+def calc_global_ml_solution(data, initial_point=None):
     '''Uses SciPy's  optimize.fmin_l_bfgs_b to find the mle. Starts the search at
     s = 0.75, and w = 0.75
 
@@ -378,8 +414,11 @@ def calc_global_ml_solution(data):
         '''
         return -ln_likelihood(data, x)
 
-    x0 = initial_parameter_guess
-    if USE_FMIN:
+    if initial_point is None:
+        x0 = initial_parameter_guess
+    else:
+        x0 = initial_point
+    if _use_fmin:
         solution = optimize.fmin(scipy_ln_likelihood, 
                                           x0,
                                           xtol=1e-8,
@@ -397,7 +436,7 @@ def calc_global_ml_solution(data):
     return solution
         
 
-def calc_null_ml_solution(data, param_constraints):
+def calc_null_ml_solution(data, param_constraints, initial_point=None):
     '''This function allows us to optimize those parameters that are set to 
     None in the list `param_constraints`. Other parameters are forced to assume
     the value listed in param_constraints.
@@ -407,7 +446,10 @@ def calc_null_ml_solution(data, param_constraints):
     constr_bounds = []
     for i, val in enumerate(initial_parameter_guess):
         if i >= len(param_constraints) or param_constraints[i] == None:
-            x0.append(val)
+            if initial_point is None:
+                x0.append(val)
+            else:
+                x0.append(initial_point[i])
             constr_bounds.append(parameter_bounds[i])
             adaptor_list.append(None)
             
@@ -435,7 +477,7 @@ def calc_null_ml_solution(data, param_constraints):
         return -ln_likelihood(data, all_params)
         
     if len(x0) > 0:
-        if USE_FMIN:
+        if _use_fmin:
             solution = optimize.fmin(constrained_scipy_ln_likelihood,
                                      x0,
                                      xtol=1e-8,
@@ -460,7 +502,7 @@ def calc_null_ml_solution(data, param_constraints):
 
 
 
-def calc_lrt_statistic(data, null_params):
+def calc_lrt_statistic(data, null_params, initial_point=None):
     '''Returns (log-likelihood ratio test statistic,
                 list of MLEs of all parameters and lnL at the global ML point,
                 a list of the MLEs of all parameters and lnL under the null)
@@ -470,8 +512,8 @@ def calc_lrt_statistic(data, null_params):
     '''
     # First we calculate the global and null solutions
     #
-    global_mle = calc_global_ml_solution(data)
-    null_mle = calc_null_ml_solution(data, null_params)
+    global_mle = calc_global_ml_solution(data, initial_point=initial_point)
+    null_mle = calc_null_ml_solution(data, null_params, initial_point=initial_point)
 
     # the log-likelihood is returned as the last element of the list by these
     #   functions.  We can access this element by referring to element -1 using
@@ -484,6 +526,107 @@ def calc_lrt_statistic(data, null_params):
     #
     lrt = 2*(null_max_ln_l - global_max_ln_l)
     return lrt, global_mle, null_mle
+
+
+
+def process_data(data_set):
+    '''To make it easier to deal with the data, we'll calculate a few summaries
+    of the data.  Three items will be returned:
+        the data_set,
+        the observations,
+        the number of individuals in each mating group.
+    '''
+    block_sizes = []
+    observed_values = []
+    flattened_data = []
+    for group_data in data_set:
+        sz = 0
+        flat = []
+        for group_treatment_data in group_data:
+            sz = sz + len(group_treatment_data)
+            flat.extend(group_treatment_data)
+            for skink in group_treatment_data:
+                observed_values.append(skink.y)
+        flattened_data.append(flat)
+        block_sizes.append(sz)
+    observed_values = numpy.matrix(observed_values).transpose()
+    return data_set, observed_values, block_sizes, flattened_data
+
+def read_data(filepath):
+    '''Reads filepath as a tab-separated csv file and returns a 3dimensional data matrix.'''
+    import os
+    import csv
+    import itertools
+    if not os.path.exists(filepath):
+        raise ValueError('The file "' + filepath + '" does not exist')
+    
+    TREATMENT_CODES = 'SML'    
+    MAX_TREATMENT_VALUE = len(TREATMENT_CODES) - 1
+    
+    # Here we create a csv reader and tell it that a tab (\t) is the column delimiter
+    entries = csv.reader(open(filepath, 'rbU'), delimiter=',')
+
+    # Here we check that file has the headers that we exect
+    first_row = entries.next()
+    expected_headers = ['mating group (foursome)', 'mom', 'dad', 'treatment', 'y (growth rate)']
+    for got, expected in itertools.izip(first_row, expected_headers):
+        if got.lower().strip() != expected:
+            raise ValueError('Error reading "' + filepath + '": expecting a column labelled "' + expected + '", but found "' + got + '" instead.')
+
+    # It is not too hard to have this loop put the data in the right spot in the
+    #   matrix, so that the data file can be somwhat flexible.
+
+    by_family = {}
+    for n, row in enumerate(entries):
+        fam_id, mom_id, dad_id, treatment_code, value = row
+        try:
+            fam_id = int(fam_id)
+        except:
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer for family ID, but got ' + str(fam_id))
+        try:
+            mom_id = int(mom_id)
+        except:
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer for mom ID, but got ' + str(mom_id))
+        try:
+            dad_id = int(dad_id)
+        except:
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer for mom ID, but got ' + str(dad_id))
+        try:
+            treatment_id = TREATMENT_CODES.index(treatment_code.upper())
+            assert(treatment_id >= 0 and treatment_id <= MAX_TREATMENT_VALUE)
+        except:
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting a single letter code (one of "' + TREATMENT_CODES + '") for the treatment, but got ' + str(treatment_code))
+        try:
+            value = float(value)
+        except:
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an number for the trait value, but got ' + str(value))
+        # a new family corresponds to an empty dictionary of individuals
+        #   for the 0, and 1 treatment. So we can create a list with two empty
+        #   dictionaries as the "blank" entry.
+        empty_family_entry = [[] for i in range(MAX_TREATMENT_VALUE + 1)]
+        fam_array = by_family.setdefault(fam_id, empty_family_entry)
+        # now we grab the appropriate one for this treatment
+        list_for_fam_treatment = fam_array[treatment_id]
+        list_for_fam_treatment.append(Skink(mom=mom_id, 
+                                            dad=dad_id,
+                                            treatment=treatment_id,
+                                            y=value))
+
+    fam_keys = by_family.keys()
+    fam_keys.sort()
+
+    # Now we'll sort the data matrix and print some status information
+    status_stream = sys.stdout
+    status_stream.write("Data read for " + str(len(fam_keys)) + " families...\n")
+    full_data = []
+    for i, fam_id in enumerate(fam_keys):
+        treatments_list = by_family[fam_id]
+        status_stream.write("  Mating group index=" + str(i) + " (id in datafile = " + str(fam_id) + "):\n")
+        full_data.append(treatments_list)
+        for treat_ind, indiv_list in enumerate(treatments_list):
+            treatment_code = TREATMENT_CODES[treat_ind]
+            status_stream.write('    ' + str(len(indiv_list)) + ' individuals in with treatment code "' + treatment_code + '" (numerical code ' + str(treat_ind) + ')\n')
+    return process_data(full_data)
     
 
 def print_help():
@@ -525,6 +668,8 @@ test.csv ''' + ' '.join(parg_list) +  ''' 1000
 
 ''')        
         
+
+
     
 if __name__ == '__main__':
     # user-interface and sanity checking...
@@ -544,6 +689,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     real_data = read_data(filepath)
+    calculate_incidence_matrix(real_data[0])
 
     # The number of simulations is the last parameter...
     #
@@ -647,7 +793,9 @@ if __name__ == '__main__':
         # Calculate the LRT on the simulated data using the same functions that
         #   we used when we analyzed the real data
         #
-        sim_lrt, sim_mle_list, sim_null = calc_lrt_statistic(sim_data, null_params)
+        sim_lrt, sim_mle_list, sim_null = calc_lrt_statistic(sim_data, 
+                                                             null_params, 
+                                                             initial_point=sim_params)
 
         # Add the simulated LRT to our null distribution
         #
