@@ -363,7 +363,7 @@ def calculate_incidence_matrix(the_data):
     for foursome_index, foursome_data in enumerate(the_data):
         for treatment_index, indiv_data in enumerate(foursome_data):
             for indiv in indiv_data:
-                the_incidence_matrix_row = calculate_incidence_row_for_indiv(indiv):
+                the_incidence_matrix_row = calculate_incidence_row_for_indiv(indiv)
                 the_incidence_matrix_row_list.append(the_incidence_matrix_row)
     the_incidence_matrix = numpy.matrix(the_incidence_matrix_row_list)
 
@@ -541,7 +541,7 @@ def calc_lrt_statistic(data, null_params, initial_point=None):
     # Now we can calculate the likelihood ratio test statistic, and return
     #   it as well as the global and null solutions
     #
-    lrt = 2*(null_max_ln_l - global_max_ln_l)
+    lrt = -2*(null_max_ln_l - global_max_ln_l)
     return lrt, global_mle, null_mle
 
 
@@ -783,14 +783,29 @@ if __name__ == '__main__':
         sys.exit(0)
     print "Generating null distribution of LRT..."
 
-    # We'll write the simulated LRT values to the "standard error stream" which
-    #   is written to the screen when we run the program from a terminal.
-    # We could use:
-    #       pboot_out = open("param_boot.txt", "w")
-    # if we wanted to write the results to a file called "param_boot.txt"
-    #
-    pboot_out = sys.stderr
-    pboot_out.write("rep\tlrt\n")
+    param_boot_lrt_filename = "ParametricBootstrapLRT.csv"
+    sys.stderr.write("About to overwrite the contents of " + param_boot_lrt_filename + "\n")
+    # Here we open a file. 'w' means that we open it for the purpose of writing
+    #   
+    param_boot_lrt_file = open(param_boot_lrt_filename, 'w')
+    # Here we will write a tab-separated "header" to the file so that each
+    #   column has a name.  We use special "escape" codes to indicate a tab
+    #   and newline characters. \t means tab and \n means newline
+    param_boot_lrt_file.write("SimRepNumber\tLRT\n")
+    
+    param_boot_param_est_filename = "ParametricBootstrapParam.csv"
+    sys.stderr.write("About to overwrite the contents of " + param_boot_param_est_filename + "\n");
+    param_boot_param_est_file = open(param_boot_param_est_filename, 'w')
+    # This is a cute, cryptic syntax for creating a line of text that 
+    #   consists of all of the strings in the list, joined together with tab
+    #   character.  In this case use the list of parameter names
+    param_header = '\t'.join(parameter_names)
+    param_boot_param_est_file.write("SimRepNumber\t" + param_header + "\n")
+
+
+
+    # We'll write the simulated LRT values to the "standard error stream" 
+    sys.stderr.write("rep\tlrt\n")
 
     # null_dist will be a list that holds all of the simulated LRT values. We
     # use [] to create an empty list.
@@ -813,18 +828,25 @@ if __name__ == '__main__':
         sim_lrt, sim_mle_list, sim_null = calc_lrt_statistic(sim_data, 
                                                              null_params, 
                                                              initial_point=sim_params)
-
+        
+        YOU WILL NEED TO ADD SOME CODE HERE TO CALL param_boot_lrt_file.write
+        AND param_boot_param_est_file.write WITH A STRING THAT CONTAINS THE 
+        APPROPRIATE INFORMATION. PUT A \t BETWEEN EACH ITEM THAT SHOULD BE
+        IN A SEPARATE COLUMN. PUT A \n AT THE END OF THE LINE. YOU WILL HAVE
+        TO USE THE str(x) TO CONVERT A NUMBER, x, TO A STRING THAT CAN BE
+        WRITTEN TO THE FILE.
+        
         # Add the simulated LRT to our null distribution
         #
         null_dist.append(sim_lrt)
 
-        # Write the value to the output stream.  The str() function converts
+        # Write the value to the standard error stream.  The str() function converts
         #   numbers to strings so that they can be written to the output stream
         #
-        pboot_out.write(str(i + 1))
-        pboot_out.write('\t')
-        pboot_out.write(str(sim_lrt))
-        pboot_out.write('\n')
+        sys.stderr.write(str(i + 1))
+        sys.stderr.write('\t')
+        sys.stderr.write(str(sim_lrt))
+        sys.stderr.write('\n')
 
     # We want the most extreme (negative) values of the LRT from the simulations
     #   if we sort the list, then these values will be at the front of the list
