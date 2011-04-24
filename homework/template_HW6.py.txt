@@ -345,11 +345,6 @@ def simulate_data(template_data, param_list):
 
 
 
-################################################################################
-#
-# YOU SHOULD NOT HAVE TO MODIFY THE CODE BELOW THIS POINT !!!
-################################################################################
-
 
 
 def calculate_incidence_matrix(the_data):
@@ -868,7 +863,7 @@ if __name__ == '__main__':
     #
     n_more_extreme = 0
     for v in null_dist:
-        if v <= lrt:
+        if v >= lrt:
             n_more_extreme = n_more_extreme + 1
         else:
             break

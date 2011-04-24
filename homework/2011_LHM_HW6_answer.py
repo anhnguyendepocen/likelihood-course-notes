@@ -901,7 +901,7 @@ if __name__ == '__main__':
     #
     n_more_extreme = 0
     for v in null_dist:
-        if v <= lrt:
+        if v > lrt:
             n_more_extreme = n_more_extreme + 1
         else:
             break

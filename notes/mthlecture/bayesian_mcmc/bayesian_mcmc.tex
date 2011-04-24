@@ -23,7 +23,8 @@
 % Use the natbib package for the bibliography
 \usepackage[round]{natbib}
 \bibliographystyle{apalike}
-\newcommand{\exampleMacro}[1]{\mu_{#1}}
+\newcommand{\prop}[2]{q(#1,#2)}
+\newcommand{\accept}[2]{\alpha({#1,#2})}
 
 \renewcommand{\Pr}{{\mathbb P}}
 \usepackage{wrapfig}
@@ -72,7 +73,7 @@ The ``Markov chain'' part of the name refers to fact that we are going to conduc
 This type of stochastic system (one which ``forgets'' its history) is referred to as a Markov chain.
 
 \subsection*{Markov chains}
-A Markov chain is a series of states.
+A Markov chain connects a series of states.
 You can think of it as a walk through a ``state space''.
 \begin{compactitem}
 	\item a {\em state} is the complete description of the ``value'' of the chain as it walks.  We'll be walking through parameter space, so the state space is the space of all parameter values in our model.
@@ -163,9 +164,9 @@ If you work through the math the probability of the state at step 15 does depend
 	\Pr(x_{15} = 0 | x_0 = 0) & = & 0.599987792969\\
 	\Pr(x_{15} = 0 | x_0 = 1) & = & 0.600018310547
 \end{eqnarray*}
-But clearly the probabilities are very close.
+But clearly these two probabilities are very close to being equal.
 
-If we consider an even large number of iterations (e.g. the state at step 100), then the probabilities are so close that they are indistinguishable.
+If we consider an even larger number of iterations (e.g. the state at step 100), then the probabilities are so close that they are indistinguishable.
 
 After a long enough walk, a Markov chain in which all of the states are connected\footnote{The fancy jargon is ``irreducible.'' A reducible chain has some states that are disconnected from others, so the chain can be broken up (reduced) into two or more chains that operate on a subset of the states.} will {\em converge} to its stationary distribution.
 
@@ -249,12 +250,12 @@ In the form of a question: if we were given the stationary distribution could we
 
 It turns out that the answer is ``No.''  
 Which can be seen if we examine equation (\ref{separatedGenEq}).
-Imagine dropping the flux out of each state by a factor of 10.
+Imagine dropping the ``flux out'' of each state by a factor of 10.
 Because the ``self-transition'' rate would increase by the appropriate amount, we can still end up in the same stationary distribution.
 
 How would such a chain behave? The primary difference is that it would ``mix'' more slowly.
 Adjacent steps would be more likely to be in the same state, and it would take a larger number of iterations before the chain ``forgets'' its starting state.
-Figure (\ref{figProbTraceSlow}) depicts the same probability statements as Figure (\ref{figProbTrace}) but for a process in which $\Pr(x_{i+1}=1|x_i=0) = 0.6 $ and $\Pr(x_{i+1}=0|x_i=1) = 0.9$.
+Figure (\ref{figProbTraceSlow}) depicts the same probability statements as Figure (\ref{figProbTrace}) but for a process in which $\Pr(x_{i+1}=1|x_i=0) = 0.06 $ and $\Pr(x_{i+1}=0|x_i=1) = 0.09$.
 \begin{figure}[h]
 \begin{picture}(0,230)(0,-100)
 	\put(-30,20){\makebox(0,0)[l]{\includegraphics[scale=0.5]{start_from_0_slow.pdf}}}
@@ -276,7 +277,6 @@ But even a slowly mixing chain will (in theory) eventually be capable of providi
 In principle, we could use the information in Equation (\ref{generalEquil}) to inform us as to how to construct a chain with a desired $\bm \pi$.
 In practice, this is difficult when we have a large number of states.
 In the continuous parameter case, we have an infinite number of states and the summation becomes an integral.
-
 Setting transition probabilities in a general way such that the total flux into and out of any state satisfies the property shown in Equation (\ref{generalEquil}) is tricky.
 
 Typically, we restrict ourselves to a subset of possible Markov chains: those that satisfy detailed balance for all pairs of states $j$ and $k$:
@@ -286,6 +286,12 @@ Typically, we restrict ourselves to a subset of possible Markov chains: those th
 Detailed balance means that for any two possible states, the flux between them balances out.
 
 Clearly, if the flux out of $j$ into $k$ is exactly matched by the flux from $k$ into $j$, then  Equation (\ref{generalEquil}) will also be satisfied (the total flux out of $j$ will be balanced by the total flux into $j$).
+
+Another way to express the detailed balance restriction is to put the transition probabilities on one side of the equation and the stationary frequencies on the other:
+\begin{eqnarray}
+	\frac{\bm \pi_j}{\bm \pi_k} = \frac{\Pr(x_{i+1} = j| x_i = k)}{\Pr(x_{i+1} = k| x_i = j)} \label{theDeetsRatio}
+\end{eqnarray}
+
 
 \section*{MCMC}
 In the Metropolis-Hastings algorithm, we choose rules for constructing a stochastic walk through parameter space.
@@ -310,7 +316,7 @@ We have one parameter, $\theta$, which can take on 5 values: $\theta\in\{0,1,2,3
 
 If the five times of packs are equally likely, then we can express the prior probability of each value of $\theta$ as $1/5$.
 
-We can calculate the probability of different number of heads, $h$, given each possible value of $\theta$ by calculating the probability of $h-\theta$ heads in $4-\theta$ flips.
+We can calculate the probability of different number of heads, $h$, given each possible value of $\theta$ by calculating the probability of $d-\theta$ heads in $4-\theta$ flips.
 We use these likelihood calculations and Bayes formula:
 $$ \Pr(\theta|D) = \frac{\Pr(D|\theta)\Pr(\theta)}{\Pr(D)}= \frac{\Pr(D,\theta)}{\Pr(D)}$$ 
 to produce the following table:
@@ -342,7 +348,7 @@ $\Pr(\theta|D) = \frac{\Pr(D,\theta)}{\Pr(D)}$ & 1/28 & 3/28 & 2/7 & 4/7 & 0 & 1
 \hline
 \end{tabular}
 \end{center}
-\label{default}
+\caption{Probability calculation for four coins, and data consisting of $d_1=4, d_2=3$}\label{tableCoinProbs}
 \end{table}
 
 \subsection*{MCMC}
@@ -354,7 +360,11 @@ In fact, our inability to calculate $\Pr(D)$, the marginal probability of the da
 Recall, that in MCMC we are going to explore the space of parameters.  
 In the case of the coin-example, there are 5 possible values for $\theta$.
 So we need to construct a Markov chain with 5 states.
-\begin{figure}
+Figure (\ref{fig5state}) shows one example.
+Note that not all of the states are adjacent, in the sense that there is not an arc between all possible pairs. 
+Thus, it would not be possible to move from state 0 to state 2 in a single step.
+But that is fine - a Markov chain with this architecture could be constructed to sample the posterior probability distribution.
+\begin{figure}[h]
 \begin{tikzpicture} 
   \node[terminal] (zero) {$0$};
   \node[terminal,right=2cm of zero] (one) {$1$};
@@ -380,38 +390,187 @@ So we need to construct a Markov chain with 5 states.
 \end{tikzpicture}
 \caption{A graphical depiction of a five-state Markov process.}\label{fig5state}
 \end{figure}
+The $m_{j,k}$ labels on the arcs mean ``the probability of moving from $j$ to $k$.''
+
+How can we construct a chain with the desired stationary distribution?  We have to choose transition probabilities that obey detailed balance (equation \ref{theDeetsRatio}). The other constraint is that the sum of the probabilities over all states at $i+1$ (conditional on the state at $i$) must be 1.
+
+Specifically, we would like:
+\begin{eqnarray*}
+	\bm \pi_0 & = & \Pr(\theta=0|D) =  \frac{\Pr(D|\theta=0)\Pr(\theta=0)}{\Pr(D)} \\
+	\bm \pi_1 & = & \Pr(\theta=1|D) =  \frac{\Pr(D|\theta=1)\Pr(\theta=1)}{\Pr(D)} \\
+	\ldots
+	\bm \pi_4 & = & \Pr(\theta=4|D) =  \frac{\Pr(D|\theta=4)\Pr(\theta=4)}{\Pr(D)} 
+\end{eqnarray*}
+Note that in our compact notation on the graph, $m_{0,1} = \Pr(x_{i+1} = 1 | x_i = 0)$, thus we can rephrase equation (\ref{theDeetsRatio}) as:
+$$	\frac{\bm \pi_j}{\bm \pi_k} = \frac{m_{k,j}}{m_{j,k}} $$
+So if we want to set $m_{0,1}$ and $m_{1,0}$ so that the transitions between 0 and 1 obey detailed balance and the stationary distribution is the posterior distribution we have:
+\begin{eqnarray*}
+	\frac{m_{1,0}}{m_{0,1}} & = & \frac{\bm \pi_0}{\bm \pi_1} \\
+		 & = & \left.\left(\frac{\Pr(D|\theta=0)\Pr(\theta=0)}{\Pr(D)}\right)\right/\left(\frac{\Pr(D|\theta=1)\Pr(\theta=1)}{\Pr(D)}\right) \\
+		 & = & \frac{\Pr(D|\theta=0)\Pr(\theta=0)}{\Pr(D|\theta=1)\Pr(\theta=1)}
+\end{eqnarray*}
+A mathematically boring, but important, thing happened in the last step: the $\Pr(D)$ crossed out.
+Thus in order to express the ratio of move probabilities we don't need to be able to calculate $\Pr(D)$.
+
+This is crucial -- in fact this is the reason we use MCMC.  
+Recall that we cannot calculate $\Pr(D)$ for most ``real-world'' problems because it involves summing over states.
+Fortunately, we don't have to calculate it to do MCMC.
+
+In our coin example, we can see that $\Pr(D|\theta=1)\Pr(\theta=1)$ is three times higher than $\Pr(D|\theta=0)\Pr(\theta=0)$.
+Thus we need to ensure that the probability of moving from 0$\rightarrow 1$ is 1/3 the probability of moving from $1\rightarrow0$.
+For instance, we could set $m_{0,1} = 1$ and $m_{1,0} = 1/3$.
+Or we could choose $m_{0,1} = 1/2$ and $m_{1,0} = 1/6$.
+Which should we use?  We'd like an MCMC simulation that converges quickly so we should set the transition probabilities as high as possible.
+So, using $m_{0,1} = 1$ and $m_{1,0} = 1/3$ sounds best.
+
+Similar arguments lead us to the conclusion that $m_{1,2} = 1$ and $m_{2,1} = 3/8$.
+However this reveals a problem: setting these four transition probabilities in this way means that $\Pr(x_{i+1} = 0 |x_{i} = 1) = 1/3$ and $\Pr(x_{i+1} = 2 |x_{i} = 1) = 1$.
+But this violates fundamental rules of probability - the probability of all mutually-exclusive events must sum to 1.0. 
+With our transition probabilities it exceeds 1.
+
+On solution is to view a transition probability as a joint event: the move is proposed and the move is accepted.
+We can denote the probability of proposing a move from $j$ to $k$ as $\prop{j}{k}$.  
+We can denote the acceptance probability of a move from $j$ to $k$ (given that the move was proposed) as $\accept{j}{k}$.
+If we were to use $x_{i+1}^{\prime}$ to denote the state proposed at step $i+1$ then
+\begin{eqnarray*}
+	\prop{j}{k} & = & \Pr(x_{i+1}^{\prime}=k|x_{i}=j) \\
+	\accept{j}{k} & = & \Pr(x_{i+1}=k | x_{i}^{\prime}=j, x_{i+1}^{\prime}=k)
+\end{eqnarray*}
 
 
+This means that we can choose proposal probabilities that sum to one for all of the state-changing transitions.
+Then, we can multiply them by the appropriate acceptance probability (keeping that as high as we can, but $\leq 1$).
+So, we get
+\begin{equation}\frac{m_{1,0}}{m_{0,1}} = \frac{\prop{1}{0}\accept{1}{0}}{\prop{0}{1}\accept{0}{1}} = \frac{\Pr(D|\theta=0)\Pr(\theta=0)}{\Pr(D|\theta=1)\Pr(\theta=1)} \label{moveToPropAccept}\end{equation}
 
-\subsection*{GLM in Bayesian world}
-Consider a data set of different diets many full sibs reared under two diets (normal=0, and unlimited=1).
-We measure snout-vent length for a bunch of gekkos.
-Our model is:
-\begin{compactitem}
-	\item There is an unknown mean SVL under the normal diet, $\alpha_0$.
-	\item $\alpha_1$ is the mean SVL of an infinitely-large independent sample under the unlimited diet.
-	\item Each family, $j$, will have a mean effect, $B_j$. This effect gets added to the mean based on the diet, regardless of diet.
-	\item Each family, $j$, will have a mean response to unlimited diet, $C_{1j}$. This effect is only added to individuals on the unlimited diet. For notational convenience, we can simply define $C_{0j}=0$ for all families.
-	\item The SVL for each individual is expected to normally-distributed around the expected value; the difference between a response and the expected value is $\epsilon_{ijk}$.
-\end{compactitem}
-To complete the likelihood model, we have to say something about the probability distributions that govern the random effects:
-\begin{compactitem}
-	\item $B_j \sim \mathcal{N}(0, \sigma_B)$
-	\item $C_{1j} \sim \mathcal{N}(0, \sigma_C)$
-	\item $\epsilon_{ijk} \sim \mathcal{N}(0, \sigma_E)$
-\end{compactitem}
+We have a great deal of flexibility in selecting how we perform proposals on new states in MCMC.
+We have to assure that $\prop{j}{k} > 0$ whenever $\prop{k}{j} > 0$; failing to do this means that the ratio of proposal probabilities will be 0 in one direction and infinite in the other.
+It is fine for $\prop{j}{k} = \prop{k}{j} = 0$ for some pairs of states (we already said that it was OK if not all states were adjacent in the Markov chain -- note that two states that are not adjacent still fulfill detailed balance because both fluxes are 0).
 
-In our previous approach, we could do a hypothesis test such as $H_0: \alpha_0 = \alpha_1$, or we could generate point estimates.
-That is OK, but what if we want to answer questions such as ``What is the probability that $\alpha_1 - \alpha_0 > 0.5$mm?''
+Once we have chosen a proposal scheme, though, we do not have as much flexibility when choosing whether or not to accept a proposal.
+Rearranging terms in equation (\ref{moveToPropAccept}) to put the acceptance probabilities on one side gives us:
+\begin{eqnarray*}
+	 \frac{\accept{1}{0}}{\accept{0}{1}} &  = & \frac{\Pr(D|\theta=0)\Pr(\theta=0)\prop{1}{0}}{\Pr(D|\theta=1)\Pr(\theta=1)\prop{0}{1}} \\
+	 	& = & \left(\frac{\Pr(D|\theta=0)}{\Pr(D|\theta=1)}\right)\left(\frac{\Pr(\theta=0)}{\Pr(\theta=1)}\right)\left(\frac{\prop{1}{0}}{\prop{0}{1}}\right) \label{MetropHastings}
+\end{eqnarray*}
+or, in words,
+\begin{eqnarray}
+	\begin{array}{c} \mbox{acceptance} \\ \mbox{ratio} \end{array} & = & 
+		\left(\begin{array}{c} {\mbox{likelihood}} \\ {\mbox{ratio}} \end{array}\right)
+		\left(\begin{array}{c} {\mbox{prior}} \\ {\mbox{ratio}} \end{array}\right)
+		\left(\begin{array}{c} {\mbox{Hastings}} \\ {\mbox{ratio}} \end{array}\right)
+\end{eqnarray}
+here the name ``Hastings ratio'' comes from \citet{Hastings1970}.
+We can generalize this to any pair of adjacent states, $j$ and $k$, by substituting in $j$ for 0 and $k$ for 1:
+\begin{eqnarray}
+	 \frac{\accept{k}{j}}{\accept{j}{k}} & = & \left(\frac{\Pr(D|\theta=j)}{\Pr(D|\theta=k)}\right)\left(\frac{\Pr(\theta=j)}{\Pr(\theta=k)}\right)\left(\frac{\prop{j}{k}}{\prop{k}{j}}\right) \label{MetropHastings}
+\end{eqnarray}
+It also applies in the case of continuous parameters (with few restrictions), however then we have ratios of probability densities rather than probabilities.
+The MCMC algorithm that exploits Equation (\ref{MetropHastings}) is referred to as the Metropolis-Hastings algorithm \citep{MetropolisRRTT1953}.
 
-Could we:
-\begin{compactitem}
-	\item reparameterize to $\delta_1 = \alpha_1 - \alpha_1$,
-	\item construct a $x\%$ confidence interval,
-	\item search for the largest value of $x^{\dag}$ such that 0 is not included in the confidence interval?
-	\item do something like $\Pr(\alpha_1 - \alpha_0 > 0.5) = (1-x^{\dag})/2$
-\end{compactitem}
-, or something like that? {\bf No!} That is not a correct interpretation of a $P$-value, or confidence interval!
+\subsubsection*{Metropolis-Hastings in a program}
+Equation (\ref{MetropHastings}) express the fundamental constraint that we must obey when constructing an MCMC sampler. 
+The last step toward being able to write a piece of software to perform this algorithm is to think about how this constraint can be implemented.
+As we simulate a Markov chain, we start from a valid state.  Thus, at each step, $i$, we have a current state, $x_i$.
+In an iteration:
+\begin{compactenum}
+	\item We propose a new state, $x_{i+1}^{\prime}$ using code that proposes move according to the probability statements encapsulated in $\prop{x_i}{j}$.
+	\item We calculate an acceptance probability, $\accept{x_{i}}{x_{i+1}^{\prime}}$, for the move we proposed.
+	\item If we draw a uniform random number less than this acceptance probability, then we set $x_{i+1} = x_{i+1}^{\prime}$, otherwise we set $x_{i+1} = x_{i}$.
+	\item We add one to the step count $i \leftarrow i + 1$
+\end{compactenum}
+Note that when we reject we stay in the same state.
+Thus for every ``destination'' state, $k$,  from starting state, $j$, we add $\prop{j}{k}\left(1-\accept{j}{k}\right)$ to the $j\rightarrow j$ transition probability.
+We don't have to worry about enforcing detailed balance for the $j\rightarrow j$ transition (because the ``flux out'' has to be the same as the ``flux in'' for any probability we assign).
+
+Note that we have to have an acceptance probability, while equation (\ref{MetropHastings}) gives us the ratio of probabilities between states.
+The insight that we use to proceed is that we want to maximize the probability that the Markov chain move through state space.
+We can calculate the acceptance ratio for any pair of states because we can calculate the likelihood, prior probability (or prior probability density), and proposal probability (or proposal probability density) at any state.
+
+To make things slightly more concrete, let's use $A$ to represent the acceptance ratio.
+Imagine that ${\accept{x_{i}}{x_{i + 1}^{\prime}}}/{\accept{x_{i}}{x_{i + 1}^{\prime}}} = A \geq 1$. 
+This means that $\accept{x_{i}}{x_{i + 1}^{\prime}} > \accept{x_{i + 1}^{\prime}}{x_{i}} $.
+There will be an infinite number of choices of acceptance probabilities that satisfy this, but we want to make the probabilities as big as possible.
+The maximum value for a probability is 1, so we can simply set:
+\begin{eqnarray*}
+	\accept{x_{i}}{x_{i + 1}^{\prime}} & = &  1 \\
+	\accept{x_{i + 1}^{\prime}}{x_{i}}  & = & \frac{1}{A}
+\end{eqnarray*}
+
+In the alternative scenario,  ${\accept{x_{i}}{x_{i + 1}^{\prime}}}/{\accept{x_{i}}{x_{i + 1}^{\prime}}} = A \leq 1$. We can satisfy this an maximize changing state by 
+\begin{eqnarray*}
+	\accept{x_{i + 1}^{\prime}}{x_{i}} & = &  1 \\
+	\accept{x_{i}}{x_{i + 1}^{\prime}} & = & A
+\end{eqnarray*}
+
+As we simulate a Markov chain, we can figure what condition we are in by imagine if we had proposed the reverse move  ($x_{i + 1}^{\prime}\rightarrow x_{i}$ instead of $x_{i}\rightarrow x_{i + 1}^{\prime}$).
+We can calculate the acceptance ratio for the pair of moves (forward and reverse) using equation (\ref{MetropHastings}).
+If the forward probability must be higher, then we set the acceptance probability to 1.
+If the forward probability must be the lower probability, then we set the acceptance probability to be equal to the acceptance ratio.
+
+This leads to the following rule: 
+\begin{eqnarray*}
+	\accept{x_{i}}{x_{i + 1}^{\prime}} = \min\left[1, \left(\frac{\Pr(D|\theta=x_{i + 1}^{\prime})}{\Pr(D|\theta=x_{i})}\right)\left(\frac{\Pr(\theta=x_{i + 1}^{\prime})}{\Pr(\theta=x_{i})}\right)\left(\frac{\prop{x_{i + 1}^{\prime}}{x_{i}}}{\prop{x_{i}}{x_{i + 1}^{\prime}}}\right)\right]
+\end{eqnarray*}
+
+\subsubsection*{Double-headed coin MCMC}
+Returning to the example of estimating the number of double-headed coins. We can use a proposal distribution in which we propose either of the adjacent states in the five-state Markov chain over the number of coins that are double-headed with probability 0.5.
+This means that when we $\prop{j}{k}=\prop{k}{j}=0.5$ for all adjacent states.
+Thus the Hastings ratio is 1 for all possible moves.
+
+We can use the likelihoods, priors (from the table \ref{tableCoinProbs}) along with this Hastings ratio to calculate acceptance probabilities.
+Multiplying acceptance probabilities by the proposal probabilities yields the Markov chain shown in Figure (\ref{fig5stateConcrete}).
+Note that we do not generally calculate transition probabilities when doing MCMC - we resort to MCMC when we cannot visit all of the possible states.
+\begin{figure}[h]
+\begin{tikzpicture} 
+  \node[terminal] (zero) {$0$};
+  \node[terminal,right=2cm of zero] (one) {$1$};
+  \node[terminal,right=2cm of one] (two) {$2$};
+  \node[terminal,right=2cm of two] (three) {$3$};
+  \node[terminal,right=2cm of three] (four) {$4$};
+  \draw[->] (zero) edge[bend left] node (f) [above]{$1/2$} (one)
+  		    (one) edge[bend left] node (f) [above]{$1/2$} (two)
+  		    (two) edge[bend left] node (f) [above]{$1/2$} (three)
+  		    (three) edge[bend left] node (f) [above]{$0$} (four)
+  		    (zero) edge [loop] node[above] {$1/2$} (zero)
+  		    (one) edge [loop] node[above] {$1/3$} (one)
+  		    (two) edge [loop] node[above] {$5/16$} (one)
+  		    (three) edge [loop] node[above] {$3/4$} (one)
+  		    (four) edge [loop] node[above] {$0$} (one)
+            (four) edge[out=250, in=290, looseness=1,distance=2cm] node (h) [below]{$1/2$} (zero)
+            (zero) edge[out=250, in=290, looseness=.5,distance=3cm] node (h) [below]{$0$} (four)
+            (one) edge[bend left] node (h) [below]{$1/6$} (zero)
+            (two) edge[bend left] node (h) [below]{$3/16$} (one)
+            (three) edge[bend left] node (h) [below]{$1/4$} (two)
+            (four) edge[bend left] node (h) [below]{$1/2$} (three)
+            ;
+\end{tikzpicture}
+\caption{A graphical depiction of a five-state Markov process with transition probabilities calculated for a equiprobable proposal distribution and the data-based calculations from table \ref{tableCoinProbs}. }\label{fig5stateConcrete}
+\end{figure}
+
+Figure \ref{thetaTrace} shows a trace plot of the sampled values for $\theta$.
+
+In this example some of the transitions probabilities are 0.
+This is not a problem here because these probabilities are all associated with the state $\theta=4$ which has posterior probability of 0 (because it conflicts with the data, resulting in a likelihood of 0).
+If state $\theta=2$ and $\theta=4$ had {\em both} had posterior probabilities of 0, then we would not have constructed a valid (irreducible) Markov chain for the purposes of MCMC.  
+There would have been no way to get from state 1 to state 3, because all of the paths would be ``blocked'' by a transition with probability 0.
+This is rarely a problem, because most parameters combinations in ``real-world'' problems cannot result in posterior probabilities of 0.
+If you are working with a problem in which some of the posteriors can be 0, then you have to assure that the states with non-zero posterior probability are connected in your Markov chain.
+
+If the posteriors of some states are very low, then you can end up with very small transition probabilities.
+Technically, if the transition probabilities are greater than zero, then the chain is irreducible and eventually the MCMC simulation will converge to the stationary distribution.
+In practice, very low transition probabilities between different ``islands'' of states represents a very demanding inference problem.
+Mixing will almost certainly be very slow, and your inference from MCMC can be misleading because any finite sampling of the Markov chain can miss very appreciable parts of parameter space.
+Running independent simulations from different starting points is one way to diagnose a Markov chain that is mixing slowly.
+
+
+\begin{figure}[h]
+\begin{picture}(0,230)(0,-100)
+	\put(-30,20){\makebox(0,0)[l]{\includegraphics[scale=0.5]{coin_contamination_out.pdf}}}
+\end{picture}
+\caption{Trace of $\theta$ values for the first 100 iterations of a MCMC run}\label{thetaTrace}
+\end{figure}
+
 
 \newpage
 
@@ -460,5 +619,78 @@ $ python two_state.py 0.6 0.9 20 1 >start_from_1.txt
 $ R --no-save -f plotProbTrace.R --args start_from_1.txt
 \end{lstlisting}
 
+\newpage
+\section{Snippet of code for double-headed coin MCMC}
+
+\begin{lstlisting}[frame=single,language=Python,columns=fixed,upquote=false,showstringspaces=false]
+likelihood = calc_likelihood(state)
+assert(likelihood > 0.0)
+counts = [0]*(num_coins + 1)
+sys.stderr.write("Gen\tlike\ttheta\n")
+for i in xrange(num_it):
+    sys.stderr.write("%d\t%f\t%d\n" % (i, likelihood, state))
+    counts[state] += 1
+    prev_likelihood = likelihood
+    if random.random() < 0.5:
+        proposed = state + 1
+        if state > num_coins:
+            proposed = 0
+    else:
+        proposed = state - 1
+        if state < 0:
+            proposed = num_coins
+	# Prior ratio is 1.0, se we can ignore it
+	
+	# Hastings ratio is 1.0, se we can ignore it
+	
+    likelihood = calc_likelihood(proposed)
+    if likelihood > prev_likelihood:
+        state = proposed
+    else:
+        if random.random() < likelihood/prev_likelihood:
+            state = proposed
+        else:
+            likelihood = prev_likelihood
+            
+print "Posterior probabilities:"
+for state in range(num_coins + 1):
+    print state, float(counts[state])/num_it
+\end{lstlisting}
+Full program at \url{http://phylo.bio.ku.edu/slides/coin_contamination.py.txt}
+
+\newpage
 \bibliography{phylo}
 \end{document}  
+
+
+\subsection*{GLM in Bayesian world}
+Consider a data set of different diets many full sibs reared under two diets (normal=0, and unlimited=1).
+We measure snout-vent length for a bunch of gekkos.
+Our model is:
+\begin{compactitem}
+	\item There is an unknown mean SVL under the normal diet, $\alpha_0$.
+	\item $\alpha_1$ is the mean SVL of an infinitely-large independent sample under the unlimited diet.
+	\item Each family, $j$, will have a mean effect, $B_j$. This effect gets added to the mean based on the diet, regardless of diet.
+	\item Each family, $j$, will have a mean response to unlimited diet, $C_{1j}$. This effect is only added to individuals on the unlimited diet. For notational convenience, we can simply define $C_{0j}=0$ for all families.
+	\item The SVL for each individual is expected to normally-distributed around the expected value; the difference between a response and the expected value is $\epsilon_{ijk}$.
+\end{compactitem}
+To complete the likelihood model, we have to say something about the probability distributions that govern the random effects:
+\begin{compactitem}
+	\item $B_j \sim \mathcal{N}(0, \sigma_B)$
+	\item $C_{1j} \sim \mathcal{N}(0, \sigma_C)$
+	\item $\epsilon_{ijk} \sim \mathcal{N}(0, \sigma_E)$
+\end{compactitem}
+
+In our previous approach, we could do a hypothesis test such as $H_0: \alpha_0 = \alpha_1$, or we could generate point estimates.
+That is OK, but what if we want to answer questions such as ``What is the probability that $\alpha_1 - \alpha_0 > 0.5$mm?''
+
+Could we:
+\begin{compactitem}
+	\item reparameterize to $\delta_1 = \alpha_1 - \alpha_1$,
+	\item construct a $x\%$ confidence interval,
+	\item search for the largest value of $x^{\dag}$ such that 0 is not included in the confidence interval?
+	\item do something like $\Pr(\alpha_1 - \alpha_0 > 0.5) = (1-x^{\dag})/2$
+\end{compactitem}
+, or something like that? {\bf No!} That is not a correct interpretation of a $P$-value, or confidence interval!
+
+
