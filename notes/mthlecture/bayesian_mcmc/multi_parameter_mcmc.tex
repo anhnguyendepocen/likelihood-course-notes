@@ -1,0 +1,159 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\textwidth = 6.5 in
+\textheight = 9 in
+\oddsidemargin = 0.0 in
+\evensidemargin = 0.0 in
+\topmargin = 0.0 in
+\headheight = 0.0 in
+\headsep = 0.0 in
+\parskip = 0.2in
+\parindent = 0.0in
+\usepackage{paralist} %compactenum
+
+%\newtheorem{theorem}{Theorem}
+%\newtheorem{corollary}[theorem]{Corollary}
+%\newtheorem{definition}{Definition}
+\usepackage{tipa}
+\usepackage{amsfonts}
+\usepackage[mathscr]{eucal}
+
+% Use the natbib package for the bibliography
+\usepackage[round]{natbib}
+\bibliographystyle{apalike}
+\newcommand{\prop}[2]{q(#1,#2)}
+\newcommand{\accept}[2]{\alpha({#1,#2})}
+
+\renewcommand{\Pr}{{\mathbb P}}
+\usepackage{wrapfig}
+\usepackage{bm}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{pgf}
+\include{positioning}
+\usepackage{tikz}
+\usetikzlibrary{trees,arrows,positioning,scopes}
+\tikzset{terminal/.style={rectangle,minimum size=6mm,rounded corners=3mm,very thick,draw=black!50, top color=white,bottom color=black!20, font=\ttfamily}}
+\tikzset{hidden/.style={rectangle,draw=white,fill=white,thick}}
+\tikzset{analysis/.style={rectangle,rounded corners,draw=black!50,fill=white,thick,minimum width=6cm}}
+\tikzset{charmatrix/.style={rectangle,draw=none,fill=black,minimum width=6cm,minimum height=8mm}}
+\tikzset{augmat/.style={rectangle,draw=none,fill=red,minimum width=6cm,minimum height=15mm}}
+\tikzset{tree/.style={rectangle,draw=black,fill=black,minimum width=6cm,minimum height=8mm}}
+\tikzset{inf/.style={rectangle,rounded corners,draw=black!50,fill=green!20,thick,minimum width=6cm,minimum height=2cm}}
+\tikzset{toArrow/.style={stealth-,ultra thick}}
+
+
+%\newcommand{\newAppendix}[2]{
+%	\addtocounter{appendixCounter}{1}
+%	{\bf Appendix {\arabic{appendixCounter}\label{#2}}: #1}
+%	}
+
+
+\usepackage{hyperref}
+\hypersetup{backref,  pdfpagemode=FullScreen,  linkcolor=blue, citecolor=red, colorlinks=true, hyperindex=true}
+
+\begin{document}
+\newcounter{appendixCounter}
+
+\section*{Multi-parameter MCMC notes by Mark Holder}
+\subsection*{Review}
+In the last lecture we justified the Metropolis-Hastings algorithm as a means of constructing a Markov chain with a stationary distribution that is identical to the posterior probability distribution.
+We found that if you propose a new state from a proposal distribution with probability of proposal denote $\prop{j}{k}$ then you could use the following rule to calculate an acceptance probability:
+\begin{eqnarray*}
+	\accept{j}{k} = \min\left[1, \left(\frac{\Pr(D|\theta=k)}{\Pr(D|\theta=j)}\right)\left(\frac{\Pr(\theta=k)}{\Pr(\theta=j)}\right)\left(\frac{\prop{k}{j}}{\prop{j}{k}}\right)\right]
+\end{eqnarray*}
+
+To get the probability of moving, we have to multiple the proposal probability by the acceptance probability:
+\begin{eqnarray*}
+	\prop{j}{k} & = & \Pr(x_{i+1}^{\prime}=k|x_i = j) \\
+	\accept{j}{k}  & = & \Pr(x_{i+1}=k|x_i = j,x_{i+1}^{\prime}) \\
+	m_{j,k} & = & \Pr(x_{i+1}=k|x_i = j) \\
+		 & = & \prop{j}{k}\accept{j}{k}
+\end{eqnarray*}
+
+If $\accept{j}{k} < 1$ then $\accept{k}{j} = 1$.  
+In this case:
+\begin{eqnarray*}
+	\frac{\accept{j}{k}}{\accept{k}{j}} & = & \left.\left[\left(\frac{\Pr(D|\theta=k)}{\Pr(D|\theta=j)}\right)\left(\frac{\Pr(\theta=k)}{\Pr(\theta=j)}\right)\left(\frac{\prop{k}{j}}{\prop{j}{k}}\right)\right]\right/1 \\
+	& = & \left(\frac{\Pr(D|\theta=k)}{\Pr(D|\theta=j)}\right)\left(\frac{\Pr(\theta=k)}{\Pr(\theta=j)}\right)\left(\frac{\prop{k}{j}}{\prop{j}{k}}\right)
+\end{eqnarray*}
+Thus, the ratio of these two transition probabilities for the Markov chain are:
+\begin{eqnarray*}
+	\frac{m_{j,k}}{m_{k,j}} & = & \frac{\prop{j}{k}\accept{j}{k}}{\prop{k}{j}\accept{k}{j}} \\
+		& = & \left(\frac{\prop{j}{k}}{\prop{k}{j}}\right)\left(\frac{\Pr(D|\theta=k)}{\Pr(D|\theta=j)}\right)\left(\frac{\Pr(\theta=k)}{\Pr(\theta=j)}\right)\left(\frac{\prop{k}{j}}{\prop{j}{k}}\right) \\
+		& = & \left(\frac{\Pr(D|\theta=k)}{\Pr(D|\theta=j)}\right)\left(\frac{\Pr(\theta=k)}{\Pr(\theta=j)}\right)
+\end{eqnarray*}
+
+If we recall that, under detailed balance, we have:
+\begin{eqnarray*}
+	\frac{\bm \pi_k}{\bm \pi_j} & = & \frac{m_{j,k}}{m_{k,j}}
+\end{eqnarray*}
+we see that we have constructed a chain in which the stationary distribution is proportional to the posterior probability distribution.
+
+\subsection*{Convergence}
+We can (sometimes) diagnose failure-to-converge by comparing the results of separate MCMC simulations.
+
+If all seems to be working, then we would like to treat our sampled points from the MCMC simulation as if they were draws from the posterior probability distribution over parameters.
+Unfortunately, our samples from our MCMC approximation to the posterior will display autocorrelation.
+We can calculate an effective sample size by diving the number of sampled points by the {\em autocorrelation time}.
+The {\tt CODA} package in R provides several useful tools for diagnosing problems with MCMC convergence.
+
+
+\section*{Multi-parameter inference}
+In the simple example discussed in the last lecture, $\theta$, could only take one of 5 values.
+In general, our models have multiple, continuous parameters.
+
+We can adopt the acceptance rules to continuous parameters by using a Hastings ratio which is the ratio of proposal densities (and we'd also have a ratio of prior probability densities).
+
+Adapting MCMC to multi-parameter problems is also simple.
+Because of co-linearity between parameters, it may be most effective to design proposals that change multiple parameters in one step. 
+But this is not necessary.
+If we update each parameter, we can still construct a valid chain.
+In doing this, we are effectively sampling the $m$-th parameter from $\Pr(\theta_m|\mbox{Data, }\theta_{-m})$ where $\theta_{-m}$ denote the vector of parameters without parameter $m$ included.
+
+Having a marginal distribution is not enough to reconstruct a joint distribution.  
+But we have the distribution on $\theta_m$ for every possible value of the other parameters.
+So we are effectively sampling from the joint distribution, we are just updating one parameter at a time.
+
+
+\subsection*{GLM in Bayesian world}
+Consider a data set of different diets many full sibs reared under two diets (normal=0, and unlimited=1).
+We measure snout-vent length for a bunch of gekkos.
+Our model is:
+\begin{compactitem}
+	\item There is an unknown mean SVL under the normal diet, $\alpha_0$.
+	\item $\alpha_1$ is the mean SVL of an infinitely-large independent sample under the unlimited diet.
+	\item Each family, $j$, will have a mean effect, $B_j$. This effect gets added to the mean based on the diet, regardless of diet.
+	\item Each family, $j$, will have a mean response to unlimited diet, $C_{1j}$. This effect is only added to individuals on the unlimited diet. For notational convenience, we can simply define $C_{0j}=0$ for all families.
+	\item The SVL for each individual is expected to normally-distributed around the expected value; the difference between a response and the expected value is $\epsilon_{ijk}$.
+\end{compactitem}
+To complete the likelihood model, we have to say something about the probability distributions that govern the random effects:
+\begin{compactitem}
+	\item $B_j \sim \mathcal{N}(0, \sigma_B)$
+	\item $C_{1j} \sim \mathcal{N}(0, \sigma_C)$
+	\item $\epsilon_{ijk} \sim \mathcal{N}(0, \sigma_E)$
+\end{compactitem}
+
+In our previous approach, we could do a hypothesis test such as $H_0: \alpha_0 = \alpha_1$, or we could generate point estimates.
+That is OK, but what if we want to answer questions such as ``What is the probability that $\alpha_1 - \alpha_0 > 0.5$mm?''
+
+Could we:
+\begin{compactitem}
+	\item reparameterize to $\delta_1 = \alpha_1 - \alpha_1$,
+	\item construct a $x\%$ confidence interval,
+	\item search for the largest value of $x^{\dag}$ such that 0 is not included in the confidence interval?
+	\item do something like $\Pr(\alpha_1 - \alpha_0 > 0.5) = (1-x^{\dag})/2$
+\end{compactitem}
+, or something like that? {\bf No!} That is not a correct interpretation of a $P$-value, or confidence interval!
+
+
+
+
+\newpage
+\bibliography{phylo}
+\end{document}  
+
