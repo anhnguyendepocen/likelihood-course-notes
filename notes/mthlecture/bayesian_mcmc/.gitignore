@@ -6,3 +6,6 @@ ptOne.txt
 two_state_out.txt
 two_state_out1k.txt
 two_state_out_slow_1k.txt
+gekko_mcmc_out.txt
+gekkos_eat_bugs.csv
+multi_parameter_mcmc.pdf
