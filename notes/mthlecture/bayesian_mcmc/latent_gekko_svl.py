@@ -520,7 +520,7 @@ def update_var_error(curr_params, data, fam_effect_list, fam_l_iteraction_list):
     mu_s = curr_params[ParamIndex.MU_S]
     mu_l = curr_params[ParamIndex.MU_L]
     param_val = curr_params[ParamIndex.VAR_ERROR]
-    param_obj = global_parameter_list[ParamIndex.VAR_L_INTERACTION]
+    param_obj = global_parameter_list[ParamIndex.VAR_ERROR]
 
     sum_sq_resid = 0.0
     for fam_ind, family in enumerate(data):
@@ -543,9 +543,92 @@ def update_var_error(curr_params, data, fam_effect_list, fam_l_iteraction_list):
         return param_val_star, True
     return param_val, False
         
+
+
+def update_fam_effects(curr_params, data, fam_effect_list, fam_l_iteraction_list):
+    mu_s = curr_params[ParamIndex.MU_S]
+    mu_l = curr_params[ParamIndex.MU_L]
+    var_g = curr_params[ParamIndex.VAR_G]
+    var_error = curr_params[ParamIndex.VAR_ERROR]
+
+    all_fam_treatment0 = data.treatment_list[0]
+    all_fam_treatment1 = data.treatment_list[1]
+    num_accepted = 0
+    denominator = 2*var_error
+
+    param_obj = Parameter(name='fam_effect',
+              initial_value=0.0,
+              prior=NormalDistribution(mean=0.0, sd=sqrt(var_g)),
+              proposal_window=1.0,
+              min_bound=None,
+              max_bound=None)
+              
+    for fam_ind, family in enumerate(data):
+        param_val = fam_effect_list[fam_ind]
+        fam_l_interaction = fam_l_iteraction_list[fam_ind]
+        treat0 = family[0]
+        treat1 = family[1]
+    
+        param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
+    
+        sq_diff = param_val**2 - param_val_star**2
+        diff = param_val_star - param_val
+        numerator = family.num*sq_diff
+        numerator += 2*(family.sum_y - treat0.num*mu_s - treat1.num*(mu_l + fam_l_interaction))*diff
+        ln_like_ratio = numerator/denominator
+        ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
+    
+        if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
+            num_accepted += 1
+            fam_effect_list[fam_ind] = param_val_star
+            all_fam_treatment0.sum_b += diff
+            all_fam_treatment1.sum_b += diff
+            data.sum_b_sq -= sq_diff
+
+    return num_accepted        
+
+
+def update_fam_l_iteractions(curr_params, data, fam_effect_list, fam_l_iteraction_list):
+    mu_s = curr_params[ParamIndex.MU_S]
+    mu_l = curr_params[ParamIndex.MU_L]
+    var_interaction = curr_params[ParamIndex.VAR_L_INTERACTION]
+    var_error = curr_params[ParamIndex.VAR_ERROR]
+
+    all_fam_treatment1 = data.treatment_list[1]
+    
+    param_obj = Parameter(name='fam_l_intearction',
+          initial_value=0.0,
+          prior=NormalDistribution(mean=0.0, sd=sqrt(var_interaction)),
+          proposal_window=1.0,
+          min_bound=None,
+          max_bound=None)
+
+    num_accepted = 0
+    denominator = 2*var_error
+    for fam_ind, family in enumerate(data):
+        fam_effect = fam_effect_list[fam_ind]
+        param_val = fam_l_iteraction_list[fam_ind]
+        treat1 = family[1]
+    
+        param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
+    
+        sq_diff = param_val**2 - param_val_star**2
+        diff = param_val_star - param_val
+        numerator = treat1.num*sq_diff
+        numerator += 2*(treat1.sum_y - treat1.num*(mu_l + fam_effect))*diff
+        ln_like_ratio = numerator/denominator
+        ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
+    
+        if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
+            num_accepted += 1
+            fam_l_iteraction_list[fam_ind] = param_val_star
+            all_fam_treatment1.sum_c += diff
+            data.sum_c_sq -= sq_diff
+
+    return num_accepted        
     
     
-def do_mcmc(data_collections, num_iterations, param_output_stream):
+def do_mcmc(data_collections, num_iterations, param_output_stream, sample_freq):
     data = data_collections[0]
     curr_params = []
     proposed_params = []
@@ -593,9 +676,10 @@ def do_mcmc(data_collections, num_iterations, param_output_stream):
         accepted = update_fam_l_iteractions(curr_params, data, fam_effects, fam_l_iteractions)
         num_accepted += accepted
 
-        params_as_str_list = [str(i) for i in curr_params + fam_effects + fam_l_iteractions]
-        params_tab_separated = '\t'.join(params_as_str_list)
-        param_output_stream.write(str(iteration) + '\t' + str(curr_lnL) + '\t' + params_tab_separated + '\n')
+        if iteration % sample_freq == 0:
+            params_as_str_list = [str(i) for i in curr_params + fam_effects + fam_l_iteractions]
+            params_tab_separated = '\t'.join(params_as_str_list)
+            param_output_stream.write(str(iteration) + '\t' + str(curr_lnL) + '\t' + params_tab_separated + '\n')
     return num_accepted
 
 def process_data(data_set, num_treatments):
@@ -712,7 +796,9 @@ def print_help():
     num_args_expected = 2 + len(global_parameter_list)
     output_stream = sys.stdout
     output_stream.write('Expecting ' + str(num_args_expected) + ''' arguments.
-    The last argument should be the number MCMC iterations,
+    The second-to-last argument should be the number MCMC iterations,
+    The last argument should be the number MCMC iterations between sampling the
+        chain (the periodicity for thinning)
 
     The first argument should be the path (filename) for the datafile (which
         should be a csv file with tab as the column separator.
@@ -750,9 +836,9 @@ if __name__ == '__main__':
 
     # The number of simulations is the last parameter...
     #
-    num_iterations = int(arguments[-1])
-    
-    for n, v in enumerate(arguments[:-1]):
+    num_iterations = int(arguments[-2])
+    sample_freq = int(arguments[-1])
+    for n, v in enumerate(arguments[:-2]):
         param = global_parameter_list[n]
         try:
             param.initial_value = float(v)
@@ -770,12 +856,13 @@ if __name__ == '__main__':
     for n, f in enumerate(real_data[0]):
         param_output_stream.write('\tfam' + str(n))
     for n, f in enumerate(real_data[0]):
-        param_output_stream.write('\tfam_l' + str(n))
+        param_output_stream.write('\tfam_l_' + str(n))
     param_output_stream.write('\n')
     
     num_accepted = do_mcmc(real_data,
                            num_iterations, 
-                           param_output_stream)
+                           param_output_stream,
+                           sample_freq)
     
     print "Accepted " + str(num_accepted) + " updates\n"
     print "Ran " + str(num_iterations) + " iterations over all " + str(len(global_parameter_list)) + " parameters.\n"
