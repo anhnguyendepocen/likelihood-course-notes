@@ -143,12 +143,12 @@ That is OK, but what if we want to answer questions such as ``What is the probab
 
 Could we:
 \begin{compactitem}
-	\item reparameterize to $\delta_1 = \alpha_1 - \alpha_1$,
+	\item reparameterize to $\delta_1 = \alpha_1 - \alpha_0$,
 	\item construct a $x\%$ confidence interval,
 	\item search for the largest value of $x^{\dag}$ such that 0 is not included in the confidence interval?
 	\item do something like $\Pr(\alpha_1 - \alpha_0 > 0.5) = (1-x^{\dag})/2$
 \end{compactitem}
-, or something like that? {\bf No!} That is not a correct interpretation of a $P$-value, or confidence interval!
+or something like that? {\bf No!} That is not a correct interpretation of a $P$-value, or confidence interval!
 
 If we conduct Bayesian inference on this model, we can estimate the joint posterior probability distribution over all parameters.
 From this distribution we can calculate the $\Pr(\alpha_1 - \alpha_0 > 0.5|X)$ by integrating 

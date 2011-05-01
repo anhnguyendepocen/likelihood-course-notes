@@ -63,7 +63,7 @@ class Gekko(object):
 class ExponentialDistribution(object):
     def __init__(self, mean):
         self.mean = mean
-    def calc_ln_prob_ratio(self, numerator_variate, denominator_variate):
+    def calc_ln_prob_ratio(self, numerator_variate, denominator_variate, full_param_value_list):
         '''
             f(x) = (mean^-1) e^(-x/mean)
         So:
@@ -78,7 +78,7 @@ class NormalDistribution(object):
     def __init__(self, mean, sd):
         self.mean = mean
         self.var = sd*sd
-    def calc_ln_prob_ratio(self, numerator_variate, denominator_variate):
+    def calc_ln_prob_ratio(self, numerator_variate, denominator_variate, full_param_value_list):
         '''
             f(x) = (2 pi sd^2) ^ -0.5  e^(-(x-mean)^2/(2sd^2))
         So:
@@ -105,6 +105,29 @@ class Parameter(object):
         self.min_bound = min_bound if min_bound is not None else float('-inf')
         self.max_bound = max_bound if max_bound is not None else float('inf')
 
+class Element(object):
+    def __init__(self, v):
+        self.value = v
+
+class Transform(object):
+    DIFFERENCE, SUM, PRODUCT, QUOTIENT = range(4)
+    def __init__(self, operation, right_operand, density):
+        self.operation = operation
+        self.right_operand = right_operand
+        assert(isinstance(right_operand, Element))
+        self.density = density
+        
+    def calc_ln_prob_ratio(self, numerator_variate, denominator_variate, full_param_value_list):
+        trans_num = self.transform(numerator_variate, full_param_value_list)
+        trans_denom = self.transform(denominator_variate, full_param_value_list)
+        return self.density.calc_ln_prob_ratio(trans_num, trans_denom, full_param_value_list)
+    
+    def transform(self, v, full_param_value_list):
+        assert(self.operation == Transform.DIFFERENCE)
+        r_index = self.right_operand.value
+        r_op_value = full_param_value_list[r_index]
+        return v - r_op_value
+    
 global_parameter_list = [
     Parameter(name='mu_S',
               initial_value=10.0,
@@ -113,9 +136,11 @@ global_parameter_list = [
               min_bound=None,
               max_bound=None),
 
-    Parameter(name='effect_L',
+    Parameter(name='mu_L',
               initial_value=10.0,
-              prior=NormalDistribution(mean=1.0, sd=10.0),
+              prior=Transform(Transform.DIFFERENCE,
+                              right_operand=Element(0),
+                              density=NormalDistribution(mean=1.0, sd=10.0)),
               proposal_window=1.0,
               min_bound=None,
               max_bound=None),
@@ -166,7 +191,7 @@ def calculate_incidence_row_for_indiv(gekko):
     if treatment == 0:
         INCIDENCE_MATRIX_ROW = [1, 0]
     elif treatment == 1:
-        INCIDENCE_MATRIX_ROW = [1, 1]
+        INCIDENCE_MATRIX_ROW = [0, 1]
     
     return INCIDENCE_MATRIX_ROW
     
@@ -188,7 +213,7 @@ def ln_likelihood(the_data, param_list):
     ############################################################################
     first_p, second_p, third_p, fourth_p, fifth_p = param_list
     mu_S = first_p
-    effect_L = second_p
+    mu_L = second_p
     var_g = third_p
     var_L_interaction = fourth_p
     var_error = fifth_p
@@ -212,7 +237,7 @@ def ln_likelihood(the_data, param_list):
         return float('-inf')
 
 
-    FIXED_EFFECT_LIST = [mu_S, effect_L]
+    FIXED_EFFECT_LIST = [mu_S, mu_L]
     
     # this next line creates a column vector, to be multiplied by the incidence 
     #   matrix (you should not have to change this)
@@ -407,7 +432,7 @@ def calc_ln_prior_ratio(old_p, new_p, full_param_value_list, param_obj):
     to determin the log of:
         the prior density of new_p / the prior density of old_p
     '''
-    return param_obj.prior.calc_ln_prob_ratio(new_p, old_p)
+    return param_obj.prior.calc_ln_prob_ratio(new_p, old_p, full_param_value_list)
     
 def do_mcmc(data, num_iterations, param_output_stream):
     curr_params = []

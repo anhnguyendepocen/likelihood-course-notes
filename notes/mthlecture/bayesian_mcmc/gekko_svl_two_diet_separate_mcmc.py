@@ -113,9 +113,9 @@ global_parameter_list = [
               min_bound=None,
               max_bound=None),
 
-    Parameter(name='effect_L',
+    Parameter(name='mu_L',
               initial_value=10.0,
-              prior=NormalDistribution(mean=1.0, sd=10.0),
+              prior=NormalDistribution(mean=11.0, sd=10.0),
               proposal_window=1.0,
               min_bound=None,
               max_bound=None),
@@ -166,7 +166,7 @@ def calculate_incidence_row_for_indiv(gekko):
     if treatment == 0:
         INCIDENCE_MATRIX_ROW = [1, 0]
     elif treatment == 1:
-        INCIDENCE_MATRIX_ROW = [1, 1]
+        INCIDENCE_MATRIX_ROW = [0, 1]
     
     return INCIDENCE_MATRIX_ROW
     
@@ -188,7 +188,7 @@ def ln_likelihood(the_data, param_list):
     ############################################################################
     first_p, second_p, third_p, fourth_p, fifth_p = param_list
     mu_S = first_p
-    effect_L = second_p
+    mu_L = second_p
     var_g = third_p
     var_L_interaction = fourth_p
     var_error = fifth_p
@@ -212,7 +212,7 @@ def ln_likelihood(the_data, param_list):
         return float('-inf')
 
 
-    FIXED_EFFECT_LIST = [mu_S, effect_L]
+    FIXED_EFFECT_LIST = [mu_S, mu_L]
     
     # this next line creates a column vector, to be multiplied by the incidence 
     #   matrix (you should not have to change this)

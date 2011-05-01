@@ -74,9 +74,9 @@ for i in xrange(num_it):
         proposed = state - 1
         if state < 0:
             proposed = num_coins
-	# Prior ratio is 1.0, se we can ignore it
+	# Prior ratio is 1.0, so we can ignore it
 	
-	# Hastings ratio is 1.0, se we can ignore it
+	# Hastings ratio is 1.0, so we can ignore it
 	
     likelihood = calc_likelihood(proposed)
     if likelihood > prev_likelihood:
