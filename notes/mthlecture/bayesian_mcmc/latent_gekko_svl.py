@@ -58,6 +58,7 @@ class Gekko(object):
         return "Gekko(family=" + str(self.family) + ", treatment=" + str(self.treatment) + ", y=" + str(self.y) + ")"
     def __str__(self):
         return self.repr()
+
 class FamilyTreatmentList(list):
     pass
 
@@ -67,9 +68,18 @@ class Family(list):
 
 class AllFamilies(list):
     '''Holds all of the Family objects'''
-    pass
+    def __init__(self):
+        self.num = 0
+        self.sum_b_sq = 0.0
+        self.sum_c_sq = 0.0
+
+
 class TreatmentList(list):
-    pass
+    def __init__(self):
+        self.num = 0
+        self.sum_y = 0.0
+        self.sum_b = 0.0
+        self.sum_c = 0.0
 
 class ExponentialDistribution(object):
     def __init__(self, mean):
@@ -104,7 +114,7 @@ class NormalDistribution(object):
         third_term = 2*self.mean*(numerator_variate - denominator_variate)
         return (d_sq - n_sq + third_term)/(2*self.var)
 class ParamIndex:
-    MU_S, EFFECT_L, VAR_G, VAR_L_INTERACTION, VAR_ERROR = range(5)
+    MU_S, MU_L, VAR_G, VAR_L_INTERACTION, VAR_ERROR = range(5)
     
 class Parameter(object):
     '''This class will keep information about each parameter bundled together
@@ -126,7 +136,7 @@ global_parameter_list = [
               min_bound=None,
               max_bound=None),
 
-    Parameter(name='effect_L',
+    Parameter(name='mu_L',
               initial_value=10.0,
               prior=NormalDistribution(mean=1.0, sd=10.0),
               proposal_window=1.0,
@@ -178,7 +188,7 @@ def calculate_incidence_row_for_indiv(gekko):
     if treatment == 0:
         INCIDENCE_MATRIX_ROW = [1, 0]
     elif treatment == 1:
-        INCIDENCE_MATRIX_ROW = [1, 1]
+        INCIDENCE_MATRIX_ROW = [0, 1]
     
     return INCIDENCE_MATRIX_ROW
     
@@ -200,7 +210,7 @@ def ln_likelihood(the_data, param_list):
     ############################################################################
     first_p, second_p, third_p, fourth_p, fifth_p = param_list
     mu_s = first_p
-    effect_L = second_p
+    mu_L = second_p
     var_g = third_p
     var_L_interaction = fourth_p
     var_error = fifth_p
@@ -224,7 +234,7 @@ def ln_likelihood(the_data, param_list):
         return float('-inf')
 
 
-    FIXED_EFFECT_LIST = [mu_s, effect_L]
+    FIXED_EFFECT_LIST = [mu_s, mu_L]
     
     # this next line creates a column vector, to be multiplied by the incidence 
     #   matrix (you should not have to change this)
@@ -425,63 +435,156 @@ def metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
     ln_acceptance = ln_like_ratio +  ln_prior_ratio + ln_hastings_ratio
     return bool(ln_acceptance > 0.0 or log(random()) < ln_acceptance)
         
-def update_mu_s(curr_params, data, fam_effects, fam_l_iteractions):
+def update_mu_s(curr_params, data):
     var_error = curr_params[ParamIndex.VAR_ERROR]
-    mu_s = curr_params[ParamIndex.MU_S]
+    param_val = curr_params[ParamIndex.MU_S]
     param_obj = global_parameter_list[ParamIndex.MU_S]
-    treat0 = data.treatment_list[0]
+    family_list_for_treatment = data.treatment_list[0]
     
-    num_s = treat0.num
-    y_sum = treat0.y_sum
-    b_sum = treat0.b_sum
+    num_s = family_list_for_treatment.num
+    sum_y = family_list_for_treatment.sum_y
+    sum_b = family_list_for_treatment.sum_b
     
-    
-    mu_s_star = propose_parameter(mu_s, param_obj)
-    numerator = 2*(mu_s_star - mu_s)*(y_sum - b_sum) - num_s*(mu_s_star**2 + mu_s**2)
+    param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
+
+    numerator = 2*(param_val_star - param_val)*(sum_y - sum_b) - num_s*(param_val_star**2 - param_val**2)
     denominator = 2*var_error
     ln_like_ratio = numerator/denominator
-    ln_hastings_ratio = 0.0
-    ln_prior_ratio = calc_ln_prob_ratio(mu_s_star, mu_s)
+
+    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
+
     if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
-        return mu_s_star, True
-    return mu_s, False
+        return param_val_star, True
+    return param_val, False
+
+
+def update_mu_l(curr_params, data):
+    var_error = curr_params[ParamIndex.VAR_ERROR]
+    param_val = curr_params[ParamIndex.MU_L]
+    param_obj = global_parameter_list[ParamIndex.MU_L]
+    family_list_for_treatment = data.treatment_list[1]
+    
+    num_s = family_list_for_treatment.num
+    sum_y = family_list_for_treatment.sum_y
+    sum_b = family_list_for_treatment.sum_b
+    sum_c = family_list_for_treatment.sum_c
+    
+    param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
+
+    numerator = 2*(param_val_star - param_val)*(sum_y - sum_b - sum_c) - num_s*(param_val_star**2 - param_val**2)
+    denominator = 2*var_error
+    ln_like_ratio = numerator/denominator
+
+    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
+
+    if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
+        return param_val_star, True
+    return param_val, False
     
     
+def update_var_g(curr_params, data):
+    param_val = curr_params[ParamIndex.VAR_G]
+    param_obj = global_parameter_list[ParamIndex.VAR_G]
+
+    b_sq = data.sum_b_sq
+    num_fam = data.num_fam
     
-def do_mcmc(data, num_iterations, param_output_stream):
+    param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
+
+    ln_like_ratio = (b_sq)/(2*param_val) - (b_sq)/(2*param_val_star) - num_fam*log(param_val_star/param_val)/2.0
+
+    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
+
+    if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
+        return param_val_star, True
+    return param_val, False
+
+def update_var_l_interaction(curr_params, data):
+    param_val = curr_params[ParamIndex.VAR_L_INTERACTION]
+    param_obj = global_parameter_list[ParamIndex.VAR_L_INTERACTION]
+
+    c_sq = data.sum_c_sq
+    num_fam = data.num_fam
+    
+    param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
+
+    ln_like_ratio = (c_sq)/(2*param_val) - (c_sq)/(2*param_val_star) - num_fam*log(param_val_star/param_val)/2.0
+
+    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
+
+    if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
+        return param_val_star, True
+    return param_val, False
+
+def update_var_error(curr_params, data, fam_effect_list, fam_l_iteraction_list):
+    mu_s = curr_params[ParamIndex.MU_S]
+    mu_l = curr_params[ParamIndex.MU_L]
+    param_val = curr_params[ParamIndex.VAR_ERROR]
+    param_obj = global_parameter_list[ParamIndex.VAR_L_INTERACTION]
+
+    sum_sq_resid = 0.0
+    for fam_ind, family in enumerate(data):
+        fam_effect = fam_effect_list[fam_ind]
+        fam_l_interaction = fam_l_iteraction_list[fam_ind]
+        for indiv in family[0]:
+            resid = indiv.y - mu_s - fam_effect
+            sum_sq_resid += resid*resid
+        for indiv in family[1]:
+            resid = indiv.y - mu_l - fam_effect - fam_l_interaction
+            sum_sq_resid += resid*resid
+    
+    param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
+
+    ln_like_ratio = sum_sq_resid*(1/(2*param_val) - 1/(2*param_val_star)) - data.num*log(param_val_star/param_val)/2.0
+
+    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
+
+    if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
+        return param_val_star, True
+    return param_val, False
+        
+    
+    
+def do_mcmc(data_collections, num_iterations, param_output_stream):
+    data = data_collections[0]
     curr_params = []
     proposed_params = []
     for p in global_parameter_list:
         curr_params.append(p.initial_value)
         proposed_params.append(p.initial_value)
 
-        
-    curr_lnL = ln_likelihood(data, curr_params)
+    curr_lnL = 0.0  # Arbitrary, but does not matter, as we will do everything
+                    #   with ln L ratios ...
     num_params = len(curr_params)
     num_accepted = 0
     
     fam_effects = []
     fam_l_iteractions = []
     blocked_by_family = data[0]
-    for fam in blocked_by_family:
+    for fam in xrange(data.num_fam):
         fam_effects.append(0.0)
         fam_l_iteractions.append(0.0)
     
     for iteration in xrange(num_iterations):
 
-        curr_params[0], accepted = update_mu_s(curr_params, data, fam_effects, fam_l_iteractions)
+        p, accepted = update_mu_s(curr_params, data)
+        curr_params[ParamIndex.MU_S] = p
         num_accepted += accepted
 
-        curr_params[1], accepted = update_effect_l(curr_params, data, fam_effects, fam_l_iteractions)
+        p, accepted = update_mu_l(curr_params, data)
+        curr_params[ParamIndex.MU_L] = p
         num_accepted += accepted
         
-        curr_params[2], accepted = update_var_g(curr_params[2], fam_effects)
+        p, accepted = update_var_g(curr_params, data)
+        curr_params[ParamIndex.VAR_G] = p
         num_accepted += accepted
         
-        curr_params[3], accepted = update_var_l_interaction(curr_params[3], fam_l_iteractions)
+        p, accepted = update_var_l_interaction(curr_params, data)
+        curr_params[ParamIndex.VAR_L_INTERACTION] = p
         num_accepted += accepted
 
-        curr_params[4], accepted = update_var_error(curr_params, data, fam_effects, fam_l_iteractions)
+        p, accepted = update_var_error(curr_params, data, fam_effects, fam_l_iteractions)
+        curr_params[ParamIndex.VAR_ERROR] = p
         num_accepted += accepted
     
         accepted = update_fam_effects(curr_params, data, fam_effects, fam_l_iteractions)
@@ -495,7 +598,7 @@ def do_mcmc(data, num_iterations, param_output_stream):
         param_output_stream.write(str(iteration) + '\t' + str(curr_lnL) + '\t' + params_tab_separated + '\n')
     return num_accepted
 
-def process_data(data_set):
+def process_data(data_set, num_treatments):
     '''To make it easier to deal with the data, we'll calculate a few summaries
     of the data.  Three items will be returned:
         the data_set,
@@ -505,24 +608,31 @@ def process_data(data_set):
     block_sizes = []
     observed_values = []
     flattened_data = []
+    data_set.treatment_list = [TreatmentList() for i in xrange(num_treatments)]
+    data_set.num_fam = len(data_set)
+
     for group_data in data_set:
         sz = 0
         flat = []
         group_data.sum_y = 0.0
         group_data.num = 0
-        for group_treatment_data in group_data:
+        for treat_ind, group_treatment_data in enumerate(group_data):
+            treatment_group = data_set.treatment_list[treat_ind]
+            treatment_group.append(group_treatment_data)
             sz = sz + len(group_treatment_data)
             flat.extend(group_treatment_data)
             group_treatment_data.sum_y = 0.0
             for gekko in group_treatment_data:
                 group_treatment_data.sum_y += gekko.y
                 observed_values.append(gekko.y)
-            group_treatment_data.sum_y = sum_y
             group_treatment_data.num = len(group_treatment_data)
             group_treatment_data.family = group_data
-            group_data.sum_y += sum_y
+            group_treatment_data.treatment_group = treatment_group
+            group_data.sum_y += group_treatment_data.sum_y
             group_data.num += group_treatment_data.num
             group_data.all_families = data_set
+            treatment_group.num += group_treatment_data.num
+            treatment_group.sum_y += group_treatment_data.sum_y
         flattened_data.append(flat)
         block_sizes.append(sz)
     observed_values = numpy.matrix(observed_values).transpose()
@@ -573,7 +683,8 @@ def read_data(filepath):
         #   dictionaries as the "blank" entry.
         fam_array = by_family.get(fam_id)
         if fam_array is None:
-            by_family = Family([FamilyTreatmentList() for i in range(MAX_TREATMENT_VALUE + 1)])
+            fam_array = Family([FamilyTreatmentList() for i in range(MAX_TREATMENT_VALUE + 1)])
+            by_family[fam_id] = fam_array
         # now we grab the appropriate one for this treatment
         list_for_fam_treatment = fam_array[treatment_id]
         list_for_fam_treatment.append(Gekko(family=fam_id, 
@@ -594,7 +705,7 @@ def read_data(filepath):
         for treat_ind, indiv_list in enumerate(treatments_list):
             treatment_code = TREATMENT_CODES[treat_ind]
             status_stream.write('    ' + str(len(indiv_list)) + ' individuals in with treatment code "' + treatment_code + '" (numerical code ' + str(treat_ind) + ')\n')
-    return process_data(full_data)
+    return process_data(full_data, len(TREATMENT_CODES))
     
 
 def print_help():

@@ -69,8 +69,8 @@ We found that if you propose a new state from a proposal distribution with proba
 
 To get the probability of moving, we have to multiple the proposal probability by the acceptance probability:
 \begin{eqnarray*}
-	\prop{j}{k} & = & \Pr(x_{i+1}^{\prime}=k|x_i = j) \\
-	\accept{j}{k}  & = & \Pr(x_{i+1}=k|x_i = j,x_{i+1}^{\prime}) \\
+	\prop{j}{k} & = & \Pr(x_{i+1}^{\ast}=k|x_i = j) \\
+	\accept{j}{k}  & = & \Pr(x_{i+1}=k|x_i = j,x_{i+1}^{\ast}) \\
 	m_{j,k} & = & \Pr(x_{i+1}=k|x_i = j) \\
 		 & = & \prop{j}{k}\accept{j}{k}
 \end{eqnarray*}
@@ -208,15 +208,15 @@ in the log-likelihoods.
 
 If we are updating $\alpha_0$:
 \begin{eqnarray*}
-\ln LR(y_{0jk}) & = &  \ln f(y_{0jk}|\alpha_0^{\prime},\delta_1, B_j,C_{1j},\sigma_e) - \ln f(y_{0jk}|\alpha_0, B_j,\delta_1, B_j,C_{1j},\sigma_e) \\
- & = &  \frac{1}{2\sigma_e^2}  \left[\left(y_{0jk}-\alpha_0 - B_j\right)^2 - \left(y_{0jk}-\alpha_0^\prime - B_j\right)^2\right] \\
-		& = &  \frac{1}{2\sigma_e^2}  \left[\left(y_{0jk} - B_j\right)^2 - 2 \left(y_{0jk} - B_j\right)\alpha_0 + \alpha_0^2 - \left(y_{0jk} - B_j\right)^2 + 2 \left(y_{0jk} - B_j\right)\alpha_0^\prime - (\alpha_0^{\prime})^2\right] \\
-		& = &  \frac{1}{2\sigma_e^2}  \left[2 \left(y_{0jk} - B_j\right)(\alpha_0^\prime - \alpha_0) + \alpha_0^2- (\alpha_0^{\prime})^2\right]\\
+\ln LR(y_{0jk}) & = &  \ln f(y_{0jk}|\alpha_0^{\ast},\delta_1, B_j,C_{1j},\sigma_e) - \ln f(y_{0jk}|\alpha_0, B_j,\delta_1, B_j,C_{1j},\sigma_e) \\
+ & = &  \frac{1}{2\sigma_e^2}  \left[\left(y_{0jk}-\alpha_0 - B_j\right)^2 - \left(y_{0jk}-\alpha_0^\ast - B_j\right)^2\right] \\
+		& = &  \frac{1}{2\sigma_e^2}  \left[\left(y_{0jk} - B_j\right)^2 - 2 \left(y_{0jk} - B_j\right)\alpha_0 + \alpha_0^2 - \left(y_{0jk} - B_j\right)^2 + 2 \left(y_{0jk} - B_j\right)\alpha_0^\ast - (\alpha_0^{\ast})^2\right] \\
+		& = &  \frac{1}{2\sigma_e^2}  \left[2 \left(y_{0jk} - B_j\right)(\alpha_0^\ast - \alpha_0) + \alpha_0^2- (\alpha_0^{\ast})^2\right]\\
 \end{eqnarray*}
 Similar algebra leads to:
 \begin{eqnarray*}
-\ln LR(y_{1jk}) & = &  \ln f(y_{1jk}|\alpha_0^{\prime},\delta_1, B_j,C_{1j},\sigma_e) - \ln f(y_{1jk}|\alpha_0, B_j,\delta_1, B_j,C_{1j},\sigma_e) \\
-		& = &  \frac{1}{2\sigma_e^2}  \left[2 \left(y_{1jk} -\delta_1 - B_j-C_{1j}\right)(\alpha_0^\prime - \alpha_0) + \alpha_0^2- (\alpha_0^{\prime})^2\right]\\
+\ln LR(y_{1jk}) & = &  \ln f(y_{1jk}|\alpha_0^{\ast},\delta_1, B_j,C_{1j},\sigma_e) - \ln f(y_{1jk}|\alpha_0, B_j,\delta_1, B_j,C_{1j},\sigma_e) \\
+		& = &  \frac{1}{2\sigma_e^2}  \left[2 \left(y_{1jk} -\delta_1 - B_j-C_{1j}\right)(\alpha_0^\ast - \alpha_0) + \alpha_0^2- (\alpha_0^{\ast})^2\right]\\
 \end{eqnarray*}
 
 Each of the data points is independent, conditional on all of the latent variables, so:
@@ -236,33 +236,54 @@ C_{1\star} & = & \sum_j \sum_k C_{1j} \\
 y_{0\star\star} & = & \sum_j\sum_k y_{0jk} \\
 y_{1\star\star} & = & \sum_j\sum_k y_{1jk} \\
 y_{\star\star\star} & = & y_{0\star\star} + y_{1\star\star} \\
-\end{eqnarray*}
-Thus, the log-likelihood ratio for  $\alpha_0\rightarrow\alpha_0^{\prime}$ is: 
+R_{\star} & = & \left(\sum_j\sum_k^{n_{0j}}\left[y_{0jk} - \alpha_0 - B_j\right]^2 \right) + \left(\sum_j\sum_k^{n_{1j}}\left[y_{0jk} - \alpha_0 - \delta_1 - B_j - C_{1j}\right]^2 \right)\end{eqnarray*}
+
+\subsubsection*{Updating $\alpha_0$}
+Thus, the log-likelihood ratio for  $\alpha_0\rightarrow\alpha_0^{\ast}$ is: 
 \begin{eqnarray*}
-\ln LR & = & \frac{n\alpha_0^2 - n(\alpha_0^{\prime})^2  + 2\left[y_{\star\star\star} - n_1\delta_1  - B_{\star}  - C_{1\star}\right](\alpha_0^\prime - \alpha_0)}{2\sigma_e^2} 
+\ln LR & = & \frac{n\left[\alpha_0^2 - (\alpha_0^{\ast})^2\right]  + 2\left[y_{\star\star\star} - n_1\delta_1  - B_{\star}  - C_{1\star}\right](\alpha_0^\ast - \alpha_0)}{2\sigma_e^2} 
 \end{eqnarray*}
 Note that calculating this log-likelihood is very fast.
 It is easy to keep the various starred-sums up to date when $B_j$ and $C_{1j}$ elements change.
 So evaluating the likelihood ratio for proposals to $\alpha_0$ does not even involve iterating through every data point.
 
+\subsubsection*{Updating $\delta_1$}
 If we are just updating $\delta_1$ then the log-likelihood ratio have fewer terms, because constants drop out in the subtraction:
 \begin{eqnarray*}
-\ln LR(y_{1jk}) & = &  \ln f(y_{1jk}|\alpha_0,\delta_1^{\prime}, B_j,C_{1j},\sigma_e) - \ln f(y_{1jk}|\alpha_0, B_j,\delta_1, B_j,C_{1j},\sigma_e) \\
-		& = &  \frac{1}{2\sigma_e^2}  \left[2 \left(y_{1jk} -\alpha_0 - B_j-C_{1j}\right)(\delta_1^\prime - \delta_1) + \delta_1^2- (\delta_1^{\prime})^2\right]\\
-\ln LR(Y) & = & \frac{n_1\delta_1^2 - n_1(\delta_1^{\prime})^2  + 2\left[y_{1\star\star} - n_1\alpha_0  - B_{1\star}  - C_{1\star}\right](\delta_1^\prime - \delta_1)}{2\sigma_e^2} 
+\ln LR(y_{1jk}) & = &  \ln f(y_{1jk}|\alpha_0,\delta_1^{\ast}, B_j,C_{1j},\sigma_e) - \ln f(y_{1jk}|\alpha_0, B_j,\delta_1, B_j,C_{1j},\sigma_e) \\
+		& = &  \frac{1}{2\sigma_e^2}  \left[2 \left(y_{1jk} -\alpha_0 - B_j-C_{1j}\right)(\delta_1^\ast - \delta_1) + \delta_1^2- (\delta_1^{\ast})^2\right]\\
+\ln LR(Y) & = & \frac{n_1\delta_1^2 - n_1(\delta_1^{\ast})^2  + 2\left[y_{1\star\star} - n_1\alpha_0  - B_{1\star}  - C_{1\star}\right](\delta_1^\ast - \delta_1)}{2\sigma_e^2} 
 \end{eqnarray*}
 
+\subsubsection*{Updating $\sigma_B$ or $\sigma_C$}
 If we want to update $\sigma_B$, and we have a set of latent variables then we only have to consider the portion of the likelihood that comes from the latent variables (we don't have to consider the data):
 \begin{eqnarray*}
-\ln LR & = & \sum_j \left(\frac{1}{2}\ln\left[2\pi(\sigma_B)^2\right] + \left[{\frac{B_j^2}{2(\sigma_B)^2}}\right] -\frac{1}{2}\ln\left[2\pi(\sigma_B^{\prime})^2\right] - \left[{\frac{B_j^2}{2(\sigma_B^{\prime})^2}}\right]\right) \\
-& = & f  \ln\left[\frac{\sigma_B}{\sigma_B^{\prime}}\right] + \sum_j \left( \left[{\frac{B_j^2}{2(\sigma_B)^2}}\right]  - \left[{\frac{B_j^2}{2(\sigma_B^{\prime})^2}}\right]\right) \\
-& = & f  \ln\left[\frac{\sigma_B}{\sigma_B^{\prime}}\right] + \frac{D_{\star}^2}{2}\left[{\frac{1}{(\sigma_B)^2}} - {\frac{1}{(\sigma_B^{\prime})^2}}\right]
+\ln LR & = & \sum_j \left(\frac{1}{2}\ln\left[2\pi(\sigma_B)^2\right] + \left[{\frac{B_j^2}{2(\sigma_B)^2}}\right] -\frac{1}{2}\ln\left[2\pi(\sigma_B^{\ast})^2\right] - \left[{\frac{B_j^2}{2(\sigma_B^{\ast})^2}}\right]\right) \\
+& = & f  \ln\left[\frac{\sigma_B}{\sigma_B^{\ast}}\right] + \sum_j \left( \left[{\frac{B_j^2}{2(\sigma_B)^2}}\right]  - \left[{\frac{B_j^2}{2(\sigma_B^{\ast})^2}}\right]\right) \\
+& = & f  \ln\left[\frac{\sigma_B}{\sigma_B^{\ast}}\right] + \frac{D_{\star}}{2}\left[{\frac{1}{(\sigma_B)^2}} - {\frac{1}{(\sigma_B^{\ast})^2}}\right]
 \end{eqnarray*}
 
 The corresponding formula for updating $\sigma_C$  would use $C_{1j}$ as the variates that depend on the variance parameter.
 
-Updating $\sigma_e$ would entail summing the effect of all of the residual, but this is the only parameter that would require iterating over all of the data points.
+\subsubsection*{Updating $\sigma_E$}
+Updating $\sigma_e$ would entail summing the effect of all of the residual, but this is the only parameter that would require iterating over all of the data points:
+\begin{eqnarray*}
+\ln LR & = & n  \ln\left[\frac{\sigma_E}{\sigma_E^{\ast}}\right] + \frac{R_{\star}}{2}\left[{\frac{1}{(\sigma_E)^2}} - {\frac{1}{(\sigma_Eo^{\ast})^2}}\right]
+\end{eqnarray*}
 
+\subsubsection*{Updating $B_j$}
+Updating a family effect is much like updating another mean effect, except (of course) it only affects the likelihood of one family (denoted family $j$) but effects both treatments:
+\begin{eqnarray*}
+\ln LR & = & \frac{(n_{0j} + n_{1j})\left[B_j^2 - (B_j^{\ast})^2\right]  + 2\left[y_{\star j\star} - (n_{0j} + n_{1j})\alpha_0 - n_{1j}(\delta_1  + C_{1j})\right](B_j^\ast - B_j)}{2\sigma_e^2} 
+\end{eqnarray*}
+
+\subsubsection*{Updating $C_{1j}$}
+Updating a $C_{1j}$ variable only affects the treatment-1 individuals in one family (denoted family $j$):
+\begin{eqnarray*}
+\ln LR & = & \frac{n_{1j}\left[C_{1j}^2 - (C_{1j}^{\ast})^2\right]  + 2\left[y_{1 j\star} - n_{1j}(\alpha_0 + \delta_1  + B_j)\right](C_{1j}^\ast - C_{1j})}{2\sigma_e^2} 
+\end{eqnarray*}
+
+\subsection{Latent variable mixing}
 The downside of introducing latent variables, is that our chain would have to sample over them (update them).
 The equation for udpating $B_j$ looks a lot like the update of $\delta_1$, but we only have to perform the summation over family $j$.
 
