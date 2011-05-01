@@ -58,7 +58,18 @@ class Gekko(object):
         return "Gekko(family=" + str(self.family) + ", treatment=" + str(self.treatment) + ", y=" + str(self.y) + ")"
     def __str__(self):
         return self.repr()
+class FamilyTreatmentList(list):
+    pass
 
+class Family(list):
+    '''List of FamilyTreatmentList '''
+    pass
+
+class AllFamilies(list):
+    '''Holds all of the Family objects'''
+    pass
+class TreatmentList(list):
+    pass
 
 class ExponentialDistribution(object):
     def __init__(self, mean):
@@ -92,7 +103,9 @@ class NormalDistribution(object):
         n_sq = numerator_variate*numerator_variate
         third_term = 2*self.mean*(numerator_variate - denominator_variate)
         return (d_sq - n_sq + third_term)/(2*self.var)
-
+class ParamIndex:
+    MU_S, EFFECT_L, VAR_G, VAR_L_INTERACTION, VAR_ERROR = range(5)
+    
 class Parameter(object):
     '''This class will keep information about each parameter bundled together
     for easy reference
@@ -186,7 +199,7 @@ def ln_likelihood(the_data, param_list):
     # Begin model-specific log-likelihood code
     ############################################################################
     first_p, second_p, third_p, fourth_p, fifth_p = param_list
-    mu_S = first_p
+    mu_s = first_p
     effect_L = second_p
     var_g = third_p
     var_L_interaction = fourth_p
@@ -211,7 +224,7 @@ def ln_likelihood(the_data, param_list):
         return float('-inf')
 
 
-    FIXED_EFFECT_LIST = [mu_S, effect_L]
+    FIXED_EFFECT_LIST = [mu_s, effect_L]
     
     # this next line creates a column vector, to be multiplied by the incidence 
     #   matrix (you should not have to change this)
@@ -383,7 +396,7 @@ def propose_parameter(old_p, param_obj):
     # draw a U(-0.5, 0.5) variable
     u = random() - 0.5
 
-    window_width = param_obj.proposal_window*1000
+    window_width = param_obj.proposal_window
     offset = u*window_width
     
     new_p = old_p + offset
@@ -408,8 +421,33 @@ def calc_ln_prior_ratio(old_p, new_p, full_param_value_list, param_obj):
     '''
     return param_obj.prior.calc_ln_prob_ratio(new_p, old_p)
 
-def update_mu_s(curr_params, data, fam_effects, fam_l_iteractions)
-   
+def metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
+    ln_acceptance = ln_like_ratio +  ln_prior_ratio + ln_hastings_ratio
+    return bool(ln_acceptance > 0.0 or log(random()) < ln_acceptance)
+        
+def update_mu_s(curr_params, data, fam_effects, fam_l_iteractions):
+    var_error = curr_params[ParamIndex.VAR_ERROR]
+    mu_s = curr_params[ParamIndex.MU_S]
+    param_obj = global_parameter_list[ParamIndex.MU_S]
+    treat0 = data.treatment_list[0]
+    
+    num_s = treat0.num
+    y_sum = treat0.y_sum
+    b_sum = treat0.b_sum
+    
+    
+    mu_s_star = propose_parameter(mu_s, param_obj)
+    numerator = 2*(mu_s_star - mu_s)*(y_sum - b_sum) - num_s*(mu_s_star**2 + mu_s**2)
+    denominator = 2*var_error
+    ln_like_ratio = numerator/denominator
+    ln_hastings_ratio = 0.0
+    ln_prior_ratio = calc_ln_prob_ratio(mu_s_star, mu_s)
+    if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
+        return mu_s_star, True
+    return mu_s, False
+    
+    
+    
 def do_mcmc(data, num_iterations, param_output_stream):
     curr_params = []
     proposed_params = []
@@ -470,11 +508,21 @@ def process_data(data_set):
     for group_data in data_set:
         sz = 0
         flat = []
+        group_data.sum_y = 0.0
+        group_data.num = 0
         for group_treatment_data in group_data:
             sz = sz + len(group_treatment_data)
             flat.extend(group_treatment_data)
+            group_treatment_data.sum_y = 0.0
             for gekko in group_treatment_data:
+                group_treatment_data.sum_y += gekko.y
                 observed_values.append(gekko.y)
+            group_treatment_data.sum_y = sum_y
+            group_treatment_data.num = len(group_treatment_data)
+            group_treatment_data.family = group_data
+            group_data.sum_y += sum_y
+            group_data.num += group_treatment_data.num
+            group_data.all_families = data_set
         flattened_data.append(flat)
         block_sizes.append(sz)
     observed_values = numpy.matrix(observed_values).transpose()
@@ -523,8 +571,9 @@ def read_data(filepath):
         # a new family corresponds to an empty dictionary of individuals
         #   for the 0, and 1 treatment. So we can create a list with two empty
         #   dictionaries as the "blank" entry.
-        empty_family_entry = [[] for i in range(MAX_TREATMENT_VALUE + 1)]
-        fam_array = by_family.setdefault(fam_id, empty_family_entry)
+        fam_array = by_family.get(fam_id)
+        if fam_array is None:
+            by_family = Family([FamilyTreatmentList() for i in range(MAX_TREATMENT_VALUE + 1)])
         # now we grab the appropriate one for this treatment
         list_for_fam_treatment = fam_array[treatment_id]
         list_for_fam_treatment.append(Gekko(family=fam_id, 
@@ -537,7 +586,7 @@ def read_data(filepath):
     # Now we'll sort the data matrix and print some status information
     status_stream = sys.stdout
     status_stream.write("Data read for " + str(len(fam_keys)) + " families...\n")
-    full_data = []
+    full_data = AllFamilies()
     for i, fam_id in enumerate(fam_keys):
         treatments_list = by_family[fam_id]
         status_stream.write("  Mating group index=" + str(i) + " (id in datafile = " + str(fam_id) + "):\n")
