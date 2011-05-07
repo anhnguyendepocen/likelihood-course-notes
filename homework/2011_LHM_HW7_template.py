@@ -34,14 +34,14 @@ class SameFieldTreatmentYearGroup(list):
     def __init__(self):
         self.num = 0
         self.sum_mass = 0.0
-        self.treatment_variable = None
+        self.treatment_variable = []
         self.field_variable = None
         self.year_variable = None
     def calc_sum_treatment(self):
         '''Returns the sum of the fertilization treatments effects across the group'''
-        if self.treatment_variable is None:
-            return 0
-        return self.num * self.treatment_variable.value
+        if not self.treatment_variable:
+            return 0.0
+        return self.num * sum([i.value for i in self.treatment_variable])
     def calc_sum_field(self):
         '''Returns the sum of the field effects across the group'''
         return self.num * self.field_variable.value
@@ -57,6 +57,9 @@ class SameFieldTreatmentYearGroup(list):
     def calc_sum_field_year(self):
         '''Returns the sum of the field and treatment effects across the group'''
         return self.calc_sum_field() + self.calc_sum_year()
+    def calc_sum_effects(self):
+        '''Returns the sum of the field and treatment effects across the group'''
+        return self.calc_sum_treatment() + self.calc_sum_field() + self.calc_sum_year()
         
 class GroupOfSameFieldTreatmentYearGroup(list):
     def recalculate_data_sums(self):
@@ -100,6 +103,8 @@ class SameYearGroup(GroupOfSameFieldTreatmentYearGroup):
 
     def recalculate_sums_over_other_effects(self):
         self.sum_field_treatment_effects = self.calc_sum_field_treatment()
+    def sum_other_effects(self):
+        return self.sum_field_treatment_effects
 
 class SameFieldGroup(GroupOfSameFieldTreatmentYearGroup):
     '''Holds all of the SameFieldTreatmentYearGroup objects that share
@@ -112,6 +117,8 @@ class SameFieldGroup(GroupOfSameFieldTreatmentYearGroup):
 
     def recalculate_sums_over_other_effects(self):
         self.sum_year_treatment_effects = self.calc_sum_year_treatment()
+    def sum_other_effects(self):
+        return self.sum_year_treatment_effects
 
 class SameFieldTreatmentGroup(GroupOfSameFieldTreatmentYearGroup):
     '''Holds all of the SameFieldTreatmentYearGroup objects that share
@@ -124,7 +131,8 @@ class SameFieldTreatmentGroup(GroupOfSameFieldTreatmentYearGroup):
 
     def recalculate_sums_over_other_effects(self):
         self.sum_field_year_effects = self.calc_sum_field_year()
-        
+    def sum_other_effects(self):
+        return self.sum_field_year_effects
 
 class ContinuousDistribution(object):
     '''The continous distribution class just has some helpers that make it 
@@ -164,8 +172,8 @@ class GammaDistribution(ContinuousDistribution):
         mean = self.get_mean()
         variance = self.get_variance()
         
-        scale = variance / mean
-        shape = mean / self.scale
+        scale = variance/mean
+        shape = mean/scale
         return scale, shape
         
 
@@ -227,10 +235,9 @@ class Parameter(object):
     '''This class will keep information about each parameter bundled together
     for easy reference
     '''
-    def __init__(self, name, initial_value, prior=None, proposal_window=None, min_bound=None, max_bound=None):
+    def __init__(self, name, value, prior=None, proposal_window=None, min_bound=None, max_bound=None):
         self.name = name
-        self.initial_value = initial_value
-        self.value = initial_value
+        self.value = value
         self.prior = prior
         self.proposal_window = proposal_window
         self.min_bound = min_bound if min_bound is not None else float('-inf')
@@ -253,61 +260,61 @@ class ParamIndex:
 
 global_parameter_list = [
     Parameter(name='var_a_year',
-              initial_value=10.0,
+              value=10.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=None,
               max_bound=None),
     Parameter(name='mu_b_field',
-              initial_value=250,
+              value=250,
               prior=GammaDistribution(mean=250.0, variance=50.0),
               proposal_window=5.0,
               min_bound=None,
               max_bound=None),
     Parameter(name='var_b_field',
-              initial_value=1.0,
+              value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
               max_bound=None),
     Parameter(name='mu_g_nitro',
-              initial_value=250,
+              value=250,
               prior=NormalDistribution(mean=5.0, variance=10.0),
               proposal_window=5.0,
               min_bound=None,
               max_bound=None),
     Parameter(name='var_g_nitro',
-              initial_value=1.0,
+              value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
               max_bound=None),
     Parameter(name='mu_d_phospho',
-              initial_value=250,
+              value=250,
               prior=NormalDistribution(mean=5.0, variance=10.0),
               proposal_window=5.0,
               min_bound=None,
               max_bound=None),
     Parameter(name='var_d_phospho',
-              initial_value=1.0,
+              value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
               max_bound=None),
     Parameter(name='mu_r_both',
-              initial_value=250,
+              value=250,
               prior=NormalDistribution(mean=5.0, variance=10.0),
               proposal_window=5.0,
               min_bound=None,
               max_bound=None),
     Parameter(name='var_r_both',
-              initial_value=1.0,
+              value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
               max_bound=None),
     Parameter(name='var_e',
-              initial_value=1.0,
+              value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
@@ -352,177 +359,91 @@ def calc_ln_prior_ratio(old_p, new_p, full_param_value_list, param_obj):
 def metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
     ln_acceptance = ln_like_ratio +  ln_prior_ratio + ln_hastings_ratio
     return bool(ln_acceptance > 0.0 or log(random()) < ln_acceptance)
-        
-def update_alpha_0(curr_params, data):
-    var_error = curr_params[ParamIndex.VAR_ERROR]
-    param_val = curr_params[ParamIndex.ALPHA_0]
-    param_obj = global_parameter_list[ParamIndex.ALPHA_0]
-    family_list_for_treatment = data.treatment_list[0]
-    
-    num_s = family_list_for_treatment.num
-    sum_y = family_list_for_treatment.sum_y
-    sum_b = family_list_for_treatment.sum_b
-    
-    param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
 
-    numerator = 2*(param_val_star - param_val)*(sum_y - sum_b) - num_s*(param_val_star**2 - param_val**2)
-    denominator = 2*var_error
-    ln_like_ratio = numerator/denominator
+def update_var_a(year_effects, curr_param_list):
+    return update_var_of_latent_effects(year_effects, curr_param_list[ParamIndex.VAR_A])
 
-    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
+def update_mu_b(field_effects, curr_param_list):
+    return update_mean_of_latent_effects(field_effects, curr_param_list[ParamIndex.MU_B], curr_param_list[ParamIndex.VAR_B].value)
+
+def update_var_b(field_effects, curr_param_list):
+    return update_var_of_latent_effects(field_effects, curr_param_list[ParamIndex.VAR_B])
+
+def update_mu_g(nitro_effects, curr_param_list):
+    return update_mean_of_latent_effects(nitro_effects, curr_param_list[ParamIndex.MU_G], curr_param_list[ParamIndex.VAR_G].value)
+
+def update_var_g(nitro_effects, curr_param_list):
+    return update_var_of_latent_effects(nitro_effects, curr_param_list[ParamIndex.VAR_G])
+
+def update_mu_d(phosph_effects, curr_param_list):
+    return update_mean_of_latent_effects(phosph_effects, curr_param_list[ParamIndex.MU_D], curr_param_list[ParamIndex.VAR_D].value)
+
+def update_var_d(phosph_effects, curr_param_list):
+    return update_var_of_latent_effects(phosph_effects, curr_param_list[ParamIndex.VAR_D])
+
+def update_mu_r(interaction_effects, curr_param_list):
+    return update_mean_of_latent_effects(interaction_effects, curr_param_list[ParamIndex.MU_R], curr_param_list[ParamIndex.VAR_R].value)
+
+def update_var_r(interaction_effects, curr_param_list):
+    return update_var_of_latent_effects(interaction_effects, curr_param_list[ParamIndex.VAR_R])
+
+def update_var_of_latent_effects(effect_list, param_obj):
+    num_effects = len(effect_list)
+    sum_sq_effect = 0.0
+    for variable in effect_list:
+        value = variable.value
+        sum_sq_effect += value**2
+    
+    current_value = param_obj.value
+    proposed_value, ln_hastings_ratio = propose_parameter(current_value, param_obj)
+    try:
+        ln_like_ratio = sum_sq_effect/(2*current_value) - (sum_sq_effect)/(2*proposed_value) - num_effects*log(proposed_value/current_value)/2.0
+    except:
+        ln_like_ratio = float('-inf')
+    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(proposed_value, current_value)
 
     if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
-        return param_val_star, True
-    return param_val, False
+        param_obj.value = proposed_value
+        return 1
+    return 0
 
-
-def update_alpha_1(curr_params, data):
-    var_error = curr_params[ParamIndex.VAR_ERROR]
-    param_val = curr_params[ParamIndex.ALPHA_1]
-    param_obj = global_parameter_list[ParamIndex.ALPHA_1]
-    family_list_for_treatment = data.treatment_list[1]
-    
-    num_s = family_list_for_treatment.num
-    sum_y = family_list_for_treatment.sum_y
-    sum_b = family_list_for_treatment.sum_b
-    sum_c = family_list_for_treatment.sum_c
-    
-    param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
-
-    numerator = 2*(param_val_star - param_val)*(sum_y - sum_b - sum_c) - num_s*(param_val_star**2 - param_val**2)
-    denominator = 2*var_error
-    ln_like_ratio = numerator/denominator
-
-    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
+def update_mean_of_latent_effects(effect_list, param_obj, variance):
+    num_effects = len(effect_list)
+    sum_effects = sum([variable.value for variable in effect_list])
+    current_value = param_obj.value
+    proposed_value, ln_hastings_ratio = propose_parameter(current_value, param_obj)
+    ln_like_ratio_numerator = (n*(current_value**2 - proposed_value**2) + 2*(proposed_value - current_value)*sum_effects)
+    ln_like_ratio = ln_like_ratio_numerator / (2*variance)
+    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(proposed_value, current_value)
 
     if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
-        return param_val_star, True
-    return param_val, False
-    
-    
-def update_var_g(curr_params, data):
-    param_val = curr_params[ParamIndex.VAR_G]
-    param_obj = global_parameter_list[ParamIndex.VAR_G]
-
-    b_sq = data.sum_b_sq
-    num_fam = data.num_fam
-    
-    param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
-
-    ln_like_ratio = (b_sq)/(2*param_val) - (b_sq)/(2*param_val_star) - num_fam*log(param_val_star/param_val)/2.0
-
-    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
-
-    if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
-        return param_val_star, True
-    return param_val, False
-
-def update_var_l_interaction(curr_params, data):
-    param_val = curr_params[ParamIndex.VAR_L_INTERACTION]
-    param_obj = global_parameter_list[ParamIndex.VAR_L_INTERACTION]
-
-    c_sq = data.sum_c_sq
-    num_fam = data.num_fam
-    
-    param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
-
-    ln_like_ratio = (c_sq)/(2*param_val) - (c_sq)/(2*param_val_star) - num_fam*log(param_val_star/param_val)/2.0
-
-    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
-
-    if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
-        return param_val_star, True
-    return param_val, False
-
-def update_var_error(curr_params, data, fam_effect_list, fam_l_iteraction_list):
-    alpha_0 = curr_params[ParamIndex.ALPHA_0]
-    alpha_1 = curr_params[ParamIndex.ALPHA_1]
-    param_val = curr_params[ParamIndex.VAR_ERROR]
-    param_obj = global_parameter_list[ParamIndex.VAR_ERROR]
-
-    sum_sq_resid = 0.0
-    for fam_ind, family in enumerate(data):
-        fam_effect = fam_effect_list[fam_ind]
-        fam_l_interaction = fam_l_iteraction_list[fam_ind]
-        for indiv in family[0]:
-            resid = indiv.y - alpha_0 - fam_effect
-            sum_sq_resid += resid*resid
-        for indiv in family[1]:
-            resid = indiv.y - alpha_1 - fam_effect - fam_l_interaction
-            sum_sq_resid += resid*resid
-    
-    param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
-
-    ln_like_ratio = sum_sq_resid*(1/(2*param_val) - 1/(2*param_val_star)) - data.num*log(param_val_star/param_val)/2.0
-
-    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
-
-    if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
-        return param_val_star, True
-    return param_val, False
-        
+        param_obj.value = proposed_value
+        return 1
+    return 0
 
 
-def update_fam_effects(curr_params, data, fam_effect_list, fam_l_iteraction_list):
-    alpha_0 = curr_params[ParamIndex.ALPHA_0]
-    alpha_1 = curr_params[ParamIndex.ALPHA_1]
-    var_g = curr_params[ParamIndex.VAR_G]
-    var_error = curr_params[ParamIndex.VAR_ERROR]
-
-    all_fam_treatment0 = data.treatment_list[0]
-    all_fam_treatment1 = data.treatment_list[1]
-    num_accepted = 0
-    denominator = 2*var_error
-
-    param_obj = Parameter(name='fam_effect',
-              initial_value=0.0,
-              prior=NormalDistribution(mean=0.0, sd=sqrt(var_g)),
-              proposal_window=1.0,
-              min_bound=None,
-              max_bound=None)
-              
-    for fam_ind, family in enumerate(data):
-        param_val = fam_effect_list[fam_ind]
-        fam_l_interaction = fam_l_iteraction_list[fam_ind]
-        treat0 = family[0]
-        treat1 = family[1]
-    
-        param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
-    
-        sq_diff = param_val**2 - param_val_star**2
-        diff = param_val_star - param_val
-        numerator = family.num*sq_diff
-        numerator += 2*(family.sum_y - treat0.num*alpha_0 - treat1.num*(alpha_1 + fam_l_interaction))*diff
-        ln_like_ratio = numerator/denominator
-        ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
-    
-        if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
-            num_accepted += 1
-            fam_effect_list[fam_ind] = param_val_star
-            all_fam_treatment0.sum_b += diff
-            all_fam_treatment1.sum_b += diff
-            data.sum_b_sq -= sq_diff
-
-    return num_accepted        
-
-
-def update_year_effects(data, curr_params, year_effects):
-    by_year = data.by_year
-    assert(len(by_year) == len(year_effects))
-    var_error = curr_params[ParamIndex.VAR_E]
+def update_latent_effects(data_by_effect, curr_param_list, latent_effects):
+    assert(len(data_by_effect) == len(latent_effects))
+    var_error = curr_param_list[ParamIndex.VAR_E]
     
     denominator = 2*(var_error.value)
 
     num_accepted = 0
-    for year_index, data_for_year in enumerate(by_year):
-        latent_variable = year_effects[year_index]
+    for year_index, data_for_effect in enumerate(data_by_effect):
+        # make sure that the sums over the other parameter/latent variables are up to date
+        #   before we use them...
+        # There are more efficient ways to do this (namely by only updating the parts of the
+        #   sum that change), but it won't make a huge difference for this application
+        data_for_effect.recalculate_sums_over_other_effects()
+        
+        latent_variable = latent_effects[year_index]
         current_value = latent_variable.value
         proposed_value, ln_hastings_ratio = propose_parameter(current_value, latent_variable)
     
         diff_param_sq = current_value**2 - proposed_value**2
         diff_param = proposed_value - current_value
-        numerator = data_for_year.num*diff_param_sq
-        numerator += 2*(data_for_year.sum_mass - data_for_year.sum_field_treatment_effects)*diff_param
+        numerator = data_for_effect.num*diff_param_sq
+        numerator += 2*(data_for_effect.sum_mass - data_for_effect.sum_other_effects())*diff_param
         ln_like_ratio = numerator/denominator
 
         ln_prior_ratio = latent_variable.prior.calc_ln_prob_ratio(proposed_value, current_value)
@@ -531,22 +452,56 @@ def update_year_effects(data, curr_params, year_effects):
             num_accepted += 1
             latent_variable.value = proposed_value
 
-    if num_accepted > 0:
-        # we need to update the sums of all of the year effects - there are more
-        #   efficient ways to do this (namely by only updating the parts of the
-        #   sum that change), but it won't make a huge difference for this application
-        #   
-        for group in data.by_field:
-            group.recalculate_sums_over_other_effects()
-        for group in data.by_field_nitro_only:
-            group.recalculate_sums_over_other_effects()
-        for group in data.by_field_phosph_only:
-            group.recalculate_sums_over_other_effects()
-        for group in data.by_field_both:
-            group.recalculate_sums_over_other_effects()
     return num_accepted        
+
+def update_var_e(data, curr_param_list):
+    sum_sq_resid = 0.0
+    for group_ind, group in enumerate(data.by_same_year_field_treatment):
+        group_expected = group.calc_sum_effects()/len(group)
+        #print "group", group_ind, "expected =", group_expected, "resids: "
+        for individual in group:
+            resid = individual.mass - group_expected
+            #print resid,
+            sum_sq_resid += resid*resid
+        #print
+    num = len(data.individuals)
+    param_obj = curr_param_list[ParamIndex.VAR_E]
+    current_value = param_obj.value
+    proposed_value, ln_hastings_ratio = propose_parameter(current_value, param_obj)
+
+    ln_like_ratio = sum_sq_resid*(1/(2*current_value) - 1/(2*proposed_value)) - num*log(proposed_value/current_value)/2.0
+
+    ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(proposed_value, current_value)
+
+    if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
+        param_obj.value = proposed_value
+        return 1
+    return 0
     
+def update_year_effects(data, curr_param_list, year_effects):
+    return update_latent_effects(data.by_year, curr_param_list, year_effects)
+
+def update_field_effects(data, curr_param_list, field_effects):
+    return update_latent_effects(data.by_field, curr_param_list, field_effects)
+
+def update_nitro_effects(data, curr_param_list, field_nitro_lv_list):
+    return update_latent_effects(data.by_field_nitro_only, curr_param_list, field_nitro_lv_list)
+
+def update_phospho_effects(data, curr_param_list, field_phospho_lv_list):
+    return update_latent_effects(data.by_field_phosph_only, curr_param_list, field_phospho_lv_list)
+
+def update_interaction_effects(data, curr_param_list, field_both_lv_list):
+    return update_latent_effects(data.by_field_both, curr_param_list, field_both_lv_list)
     
+
+def write_sampled_parameters(param_output_stream, iteration, all_variables_list):    
+    # We convert every parameter or latent variable value to a string of characters to be written
+    params_as_str_list = [str(i.value) for i in all_variables_list]
+    # We introduce tabs between each element
+    params_tab_separated = '\t'.join(params_as_str_list)
+    # We write a line to the parameter output stream.
+    param_output_stream.write(str(iteration) + '\t' + params_tab_separated + '\n')
+
 def do_mcmc(data_and_latent_variables, num_iterations, param_output_stream, sample_freq):
     data = data_and_latent_variables[0]
     all_individuals = obs_data.individuals
@@ -558,14 +513,13 @@ def do_mcmc(data_and_latent_variables, num_iterations, param_output_stream, samp
     field_phospho_lv_list = data_and_latent_variables[4]
     field_both_lv_list = data_and_latent_variables[5]
     
-    curr_lnL = 0.0  # Arbitrary, but does not matter, as we will do everything
-                    #   with ln L ratios ...
     num_accepted = 0
     
     # make a huge list of all of the parameters or latent variables (this will make it 
     #   easier to print out the state at each iteration of the MCMC
     all_variables_list = global_parameter_list + year_lv_list + field_lv_list + field_nitro_lv_list + field_phospho_lv_list + field_both_lv_list
         
+    
     for iteration in xrange(num_iterations):
 
         accepted = update_year_effects(data, global_parameter_list, year_lv_list)
@@ -610,17 +564,14 @@ def do_mcmc(data_and_latent_variables, num_iterations, param_output_stream, samp
         accepted = update_var_r(field_both_lv_list, global_parameter_list)
         num_accepted += accepted
 
-        accepted = update_var_e(data, global_parameter_list)
-        num_accepted += accepted
+        if iteration % 4 == 0:
+            accepted = update_var_e(data, global_parameter_list)
+            num_accepted += accepted
 
 
         if iteration % sample_freq == 0:
-            # We convert every parameter or latent variable value to a string of characters to be written
-            params_as_str_list = [str(i.value) for i in all_variables_list]
-            # We introduce tabs between each element
-            params_tab_separated = '\t'.join(params_as_str_list)
-            # We write a line to the parameter output stream.
-            param_output_stream.write(str(iteration) + '\t' + str(curr_lnL) + '\t' + params_tab_separated + '\n')
+            print("iter=" + str(iteration))
+            write_sampled_parameters(param_output_stream, iteration, all_variables_list)
     return num_accepted
 
 def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with_both_by_yf, all_years, all_fields):
@@ -641,6 +592,10 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
         5. a list of "field x both fertilizers effect" latent variables.
     
     The data_set object has the following attributes
+        by_same_year_field_treatment a list containing all the data grouped
+            into SameFieldTreatmentYearGroup objects (each individual in the 
+            a SameFieldTreatmentYearGroup shares the same year, field, and 
+            treatment.
         individuals (a list of all Coconut objects)
         by_year (a list of SameYearGroup objects)
         by_field (a list of SameFieldGroup objects)
@@ -657,7 +612,7 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
     year_lv_list = []
     for year in sorted_years:
         year_lv = LatentVariable(name="year_" + str(year),
-                                 initial_value=0.0,
+                                 value=0.0,
                                  prior=NormalDistribution(0, variance=global_parameter_list[ParamIndex.VAR_A]),
                                  proposal_window=1.0)
         year_lv_list.append(year_lv)
@@ -668,36 +623,41 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
     field_phospho_lv_list = []
     field_both_lv_list = []
     for field in sorted_fields:
+        expected = global_parameter_list[ParamIndex.MU_B]
         field_lv = LatentVariable(name="field_" + str(field),
-                                  initial_value=0.0,
-                                  prior=NormalDistribution(mean=global_parameter_list[ParamIndex.MU_B],
+                                  value=expected.value,
+                                  prior=NormalDistribution(mean=expected,
                                                            variance=global_parameter_list[ParamIndex.VAR_B]),
                                   proposal_window=1.0)
         field_lv_list.append(field_lv)
         
+        expected = global_parameter_list[ParamIndex.MU_G] 
         nitro_lv = LatentVariable(name="field_" + str(field) + "_nitro",
-                                  initial_value=0.0,
-                                  prior=NormalDistribution(mean=global_parameter_list[ParamIndex.MU_G],
+                                  value=expected.value,
+                                  prior=NormalDistribution(mean=expected,
                                                            variance=global_parameter_list[ParamIndex.VAR_G]),
                                   proposal_window=1.0)
         field_nitro_lv_list.append(nitro_lv)
         
+        expected = global_parameter_list[ParamIndex.MU_D] 
         phospho_lv = LatentVariable(name="field_" + str(field) + "_phospho",
-                                  initial_value=0.0,
-                                  prior=NormalDistribution(mean=global_parameter_list[ParamIndex.MU_D],
+                                  value=expected.value,
+                                  prior=NormalDistribution(mean=expected,
                                                            variance=global_parameter_list[ParamIndex.VAR_D]),
                                   proposal_window=1.0)
         field_phospho_lv_list.append(phospho_lv)
         
+        expected = global_parameter_list[ParamIndex.MU_R] 
         both_lv = LatentVariable(name="field_" + str(field) + "_both",
-                                  initial_value=0.0,
-                                  prior=NormalDistribution(mean=global_parameter_list[ParamIndex.MU_R],
+                                  value=expected.value,
+                                  prior=NormalDistribution(mean=expected,
                                                            variance=global_parameter_list[ParamIndex.VAR_R]),
                                   proposal_window=1.0)
         field_both_lv_list.append(both_lv)
     
     
     data = Dataset()
+    data.by_same_year_field_treatment = []
     data.individuals = []
     data.by_year = []
     data.by_field = []
@@ -716,8 +676,9 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
             neither.num = len(neither)
             neither.sum_mass = sum([el.mass for el in neither])
             data.individuals.extend(neither)
+            data.by_same_year_field_treatment.append(neither)
             same_year_group.append(neither)
-            neither.treatment_variable = None
+            neither.treatment_variable = []
             neither.field_variable = field_lv
             neither.year_variable = year_lv
             
@@ -725,8 +686,10 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
             nitro.num = len(nitro)
             nitro.sum_mass = sum([el.mass for el in nitro])
             data.individuals.extend(nitro)
+            data.by_same_year_field_treatment.append(nitro)
             same_year_group.append(nitro)
-            nitro.treatment_variable = field_nitro_lv_list[field_index]
+            nitro_treament = field_nitro_lv_list[field_index]
+            nitro.treatment_variable = [nitro_treament]
             nitro.field_variable = field_lv
             nitro.year_variable = year_lv
 
@@ -734,8 +697,10 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
             phospho.num = len(phospho)
             phospho.sum_mass = sum([el.mass for el in phospho])
             data.individuals.extend(phospho)
+            data.by_same_year_field_treatment.append(phospho)
             same_year_group.append(phospho)
-            phospho.treatment_variable = field_phospho_lv_list[field_index]
+            phospo_treatment = field_phospho_lv_list[field_index]
+            phospho.treatment_variable = [phospo_treatment]
             phospho.field_variable = field_lv
             phospho.year_variable = year_lv
 
@@ -743,8 +708,10 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
             both.num = len(both)
             both.sum_mass = sum([el.mass for el in both])
             data.individuals.extend(both)
+            data.by_same_year_field_treatment.append(both)
             same_year_group.append(both)
-            both.treatment_variable = field_both_lv_list[field_index]
+            interaction_effect = field_both_lv_list[field_index]
+            both.treatment_variable = [nitro_treament, phospo_treatment, interaction_effect]
             both.field_variable = field_lv
             both.year_variable = year_lv
 
@@ -753,8 +720,8 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
 
     for field_index, field in enumerate(sorted_fields):
         same_field_group = SameFieldGroup()
-        same_field_nitro_group = SameFieldTreatmentGroup()
-        same_field_phospho_group = SameFieldTreatmentGroup()
+        same_field_nitro_group = SameFieldGroup()
+        same_field_phospho_group = SameFieldGroup()
         same_field_both_group = SameFieldTreatmentGroup()
 
         for year_index, year in enumerate(sorted_years):
@@ -885,7 +852,7 @@ def read_data(filepath):
     
 
 def print_help():
-    num_args_expected = 2 + len(global_parameter_list)
+    num_args_expected = 3 + len(global_parameter_list)
     output_stream = sys.stdout
     output_stream.write('Expecting ' + str(num_args_expected) + ''' arguments.
     The second-to-last argument should be the number MCMC iterations,
@@ -914,7 +881,7 @@ if __name__ == '__main__':
     try:
         filepath = sys.argv[1] 
         arguments = sys.argv[2:]
-        if len(arguments) < 1 + len(global_parameter_list):
+        if len(arguments) < 2 + len(global_parameter_list):
             print len(arguments)
             print_help()
             sys.exit(1)
@@ -930,13 +897,14 @@ if __name__ == '__main__':
     for n, v in enumerate(arguments[:-2]):
         param = global_parameter_list[n]
         try:
-            param.initial_value = float(v)
+            param.value = float(v)
         except:
             sys.exit('Expecting an initial value for the parameter "' + param.name + '" but got: "' + v + '"')
-        if param.min_bound is not None and param.initial_value < param.min_bound:
+        if param.min_bound is not None and param.value < param.min_bound:
             sys.exit('Expecting an initial value for the parameter "' + param.name + '" to be >=' + param.min_bound + ' but got "' + v + '"')
-        if param.max_bound is not None and param.initial_value > param.max_bound:
+        if param.max_bound is not None and param.value > param.max_bound:
             sys.exit('Expecting an initial value for the parameter "' + param.name + '" to be <=' + param.max_bound + ' but got "' + v + '"')
+        print "param #", n, param.name, "=", param.value
 
     data_and_latent_variables = read_data(filepath)
 
@@ -950,7 +918,7 @@ if __name__ == '__main__':
     field_both_lv_list = data_and_latent_variables[5]
     
     param_output_stream = sys.stderr
-    param_output_stream.write("Iteration\tlnL")
+    param_output_stream.write("Iteration")
     for p in global_parameter_list:
         param_output_stream.write('\t' + p.name)
     for p in year_lv_list:
