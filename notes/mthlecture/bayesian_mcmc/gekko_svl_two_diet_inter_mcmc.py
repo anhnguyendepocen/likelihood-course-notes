@@ -106,14 +106,14 @@ class Parameter(object):
         self.max_bound = max_bound if max_bound is not None else float('inf')
 
 global_parameter_list = [
-    Parameter(name='mu_S',
+    Parameter(name='alpha_0',
               initial_value=10.0,
               prior=NormalDistribution(mean=10.0, sd=5),
               proposal_window=1.0,
               min_bound=None,
               max_bound=None),
 
-    Parameter(name='effect_L',
+    Parameter(name='delta_1',
               initial_value=10.0,
               prior=NormalDistribution(mean=1.0, sd=10.0),
               proposal_window=1.0,
@@ -187,8 +187,8 @@ def ln_likelihood(the_data, param_list):
     # Begin model-specific log-likelihood code
     ############################################################################
     first_p, second_p, third_p, fourth_p, fifth_p = param_list
-    mu_S = first_p
-    effect_L = second_p
+    alpha_0 = first_p
+    delta_1 = second_p
     var_g = third_p
     var_L_interaction = fourth_p
     var_error = fifth_p
@@ -212,7 +212,7 @@ def ln_likelihood(the_data, param_list):
         return float('-inf')
 
 
-    FIXED_EFFECT_LIST = [mu_S, effect_L]
+    FIXED_EFFECT_LIST = [alpha_0, delta_1]
     
     # this next line creates a column vector, to be multiplied by the incidence 
     #   matrix (you should not have to change this)

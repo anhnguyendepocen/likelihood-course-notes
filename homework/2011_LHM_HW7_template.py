@@ -4,82 +4,122 @@ from scipy import optimize
 from math import pow, log, exp, sqrt
 from random import random, normalvariate
 from copy import copy
-import numpy
 
 verbose = False
-  
-_use_fmin = False
 
+class Coconut(object):
+    def __init__(self, field, year, plus_n, plus_p, mass):
+        self.field = field
+        self.year = year
+        self.plus_n = plus_n
+        self.plus_p = plus_p
+        self.mass = mass
 
-
-
-############################################################################
-# Begin model-specific initialization code
-############################################################################
-
-############################################################################
-# Here declare a "class" that allows us to bundle together different pieces
-#   of information about our data in a convenient bundle. The read_data 
-#   function and simulate data function will create "Gekko" objects, and 
-#   store them in a list.
-#
-# Specifically the data_list will have an element for each mating group.
-#
-# Each of these elements will consist of three lists - one for each diet
-#   treatment.  Specifically, if group_data is the data for one mating group 
-#   (family), then:
-#       group_data[0] will be a list of individuals exposed to the "Small"
-#               insect diet,
-#       group_data[1] will be a list of individuals exposed to the "Medium"
-#               insect diet, and 
-#       group_data[2] will be a list of individuals exposed to the "Large"
-#               insect diet.
-# Each of this lists will be a list of "Gekko objects"
-#
-# If s1 and s2 refer to two different Gekko objects then you can see if they
-#   share a mother using code like this:
-#
-#   if s1.family == s2.family:
-#       here is a block of code to execute for sibs
-#   else:
-#       here is a block of code to execute for distinct families
-# 
-# Note that we use the "." operator to examine an attribute inside the "Gekko"
-#   objects.  The objects are just a convenient way to keep info on family,
-#   treatment, and y-value (the dependent variable, growth rate) bundled
-#   together.
-############################################################################
-class Gekko(object):
-    def __init__(self, family, treatment, y):
-        self.family = family
-        self.treatment = treatment
-        self.y = y
     def __repr__(self):
-        return "Gekko(family=" + str(self.family) + ", treatment=" + str(self.treatment) + ", y=" + str(self.y) + ")"
+        attributes_str = ", ".join([i + "=" + str(getattr(self, i)) for i in ["field", "year", "plus_n", "plus_p", "mass"]])
+        return "Coconut(" + attributes_str + ")"
+
     def __str__(self):
         return self.repr()
 
-class FamilyTreatmentList(list):
+class Dataset(object):
     pass
 
-class Family(list):
-    '''List of FamilyTreatmentList '''
-    pass
-
-class AllFamilies(list):
-    '''Holds all of the Family objects'''
+class SameFieldTreatmentYearGroup(list):
+    '''Holds Coconut objects for a particular field, treatment, and year.
+    
+    The length of this list will be determined by number of individuals in that
+    treatment x field x year combination.
+    '''
     def __init__(self):
         self.num = 0
-        self.sum_b_sq = 0.0
-        self.sum_c_sq = 0.0
+        self.sum_mass = 0.0
+        self.treatment_variable = None
+        self.field_variable = None
+        self.year_variable = None
+    def calc_sum_treatment(self):
+        '''Returns the sum of the fertilization treatments effects across the group'''
+        if self.treatment_variable is None:
+            return 0
+        return self.num * self.treatment_variable.value
+    def calc_sum_field(self):
+        '''Returns the sum of the field effects across the group'''
+        return self.num * self.field_variable.value
+    def calc_sum_year(self):
+        '''Returns the sum of the field effects across the group'''
+        return self.num * self.year_variable.value
+    def calc_sum_field_treatment(self):
+        return self.calc_sum_treatment() + self.calc_sum_field()
+    def calc_sum_year_treatment(self):
+        return self.calc_sum_treatment() + self.calc_sum_year()
+    def calc_sum_field_year(self):
+        return self.calc_sum_field() + self.calc_sum_year()
+        
+class GroupOfSameFieldTreatmentYearGroup(list):
+    def calc_sum_field_treatment(self):
+        ft = 0.0
+        for group in self:
+            ft = ft + group.calc_sum_field_treatment()
+        return ft
+    def calc_sum_year_treatment(self):
+        ft = 0.0
+        for group in self:
+            ft = ft + group.calc_sum_year_treatment()
+        return ft
+    def calc_sum_field_year(self):
+        ft = 0.0
+        for group in self:
+            ft = ft + group.calc_sum_field_year()
+        return ft
 
-
-class TreatmentList(list):
+class SameYearGroup(list):
+    '''Holds all of the SameFieldTreatmentYearGroup objects that share
+    a particular year
+    '''
     def __init__(self):
         self.num = 0
-        self.sum_y = 0.0
-        self.sum_b = 0.0
-        self.sum_c = 0.0
+        self.sum_mass = 0.0
+        self.sum_field_treatment_effects = 0.0
+
+class SameFieldGroup(list):
+    '''Holds all of the SameFieldTreatmentYearGroup objects that share
+    a particular field
+    '''
+    def __init__(self):
+        self.num = 0
+        self.sum_mass = 0.0
+        self.sum_year_treatment_effects = 0.0
+
+class SameFieldTreatmentGroup(list):
+    '''Holds all of the SameFieldTreatmentYearGroup objects that share
+    a particular field and treatment
+    '''
+    def __init__(self):
+        self.num = 0
+        self.sum_mass = 0.0
+        self.sum_field_year_effects = 0.0
+
+class GammaDistribution(object):
+    def __init__(self, mean, variance):
+        ''' mean = shape*scale
+            var = shape*scale*scale
+        '''
+        self.scale = variance / mean
+        self.shape = mean / self.scale
+        
+
+    def calc_ln_prob_ratio(self, numerator_variate, denominator_variate):
+        '''
+            f(x) = x^{shape-1}e^{-x/scale}/Gamma function
+        So:
+            ln[f(x)] = (shape-1)ln(x) -x/scale - ln[Some constant based on the Gamma function]
+        
+        So: 
+            ln[f(numerator)] - ln[f(denominator)] = (denominator - numerator)/mean
+        '''
+        ln_numerator =  (self.shape-1)*log(numerator_variate) - numerator_variate/self.scale
+        ln_denominator = (self.shape-1)*log(denominator_variate) - denominator_variate/self.scale
+        return ln_numerator - ln_denominator
 
 class ExponentialDistribution(object):
     def __init__(self, mean):
@@ -96,9 +136,13 @@ class ExponentialDistribution(object):
         return (denominator_variate - numerator_variate)/self.mean
 
 class NormalDistribution(object):
-    def __init__(self, mean, sd):
+    def __init__(self, mean, sd=None, variance=None):
+        '''Takes the mean and standard deviation.'''
         self.mean = mean
-        self.var = sd*sd
+        if variance is None:
+            self.var = sd*sd
+        else:
+            self.var = variance
     def calc_ln_prob_ratio(self, numerator_variate, denominator_variate):
         '''
             f(x) = (2 pi sd^2) ^ -0.5  e^(-(x-mean)^2/(2sd^2))
@@ -113,8 +157,7 @@ class NormalDistribution(object):
         n_sq = numerator_variate*numerator_variate
         third_term = 2*self.mean*(numerator_variate - denominator_variate)
         return (d_sq - n_sq + third_term)/(2*self.var)
-class ParamIndex:
-    ALPHA_0, ALPHA_1, VAR_G, VAR_L_INTERACTION, VAR_ERROR = range(5)
+
     
 class Parameter(object):
     '''This class will keep information about each parameter bundled together
@@ -123,280 +166,91 @@ class Parameter(object):
     def __init__(self, name, initial_value, prior=None, proposal_window=None, min_bound=None, max_bound=None):
         self.name = name
         self.initial_value = initial_value
+        self.value = initial_value
         self.prior = prior
         self.proposal_window = proposal_window
         self.min_bound = min_bound if min_bound is not None else float('-inf')
         self.max_bound = max_bound if max_bound is not None else float('inf')
 
+class LatentVariable(Parameter):
+    '''For the purpose of MCMC a latent variable acts just like a parameter.
+    So here we create a class for LatentVariable objects, but the word "pass"
+    tells python that we have nothing to add.
+    
+    The "LatentVariable(Parameter)" syntax means that a LatentVariable object
+        can be treated like a Parameter object.  In computing jargon we would
+        say that LatentVariable is derived from Parameter
+    '''
+    pass
+
+
+class ParamIndex:
+    VAR_A, MU_B, VAR_B, MU_G, VAR_G, MU_D, VAR_D, MU_R, VAR_R, VAR_E = range(10)
+
 global_parameter_list = [
-    Parameter(name='alpha_0',
+    Parameter(name='var_a',
               initial_value=10.0,
-              prior=NormalDistribution(mean=10.0, sd=5),
+              prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=None,
               max_bound=None),
-
-    Parameter(name='alpha_1',
-              initial_value=10.0,
-              prior=NormalDistribution(mean=1.0, sd=10.0),
-              proposal_window=1.0,
+    Parameter(name='mu_b',
+              initial_value=250,
+              prior=GammaDistribution(mean=250.0, variance=50.0),
+              proposal_window=5.0,
               min_bound=None,
               max_bound=None),
-
-    Parameter(name='var_G',
+    Parameter(name='var_b',
               initial_value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
               max_bound=None),
-
-    Parameter(name='var_L_interaction',
-              initial_value=0.5,
+    Parameter(name='mu_g',
+              initial_value=250,
+              prior=NormalDistribution(mean=5.0, variance=10.0),
+              proposal_window=5.0,
+              min_bound=None,
+              max_bound=None),
+    Parameter(name='var_g',
+              initial_value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
               max_bound=None),
-
-    Parameter(name='var_Error',
-              initial_value=5.0,
+    Parameter(name='mu_d',
+              initial_value=250,
+              prior=NormalDistribution(mean=5.0, variance=10.0),
+              proposal_window=5.0,
+              min_bound=None,
+              max_bound=None),
+    Parameter(name='var_d',
+              initial_value=1.0,
+              prior=ExponentialDistribution(mean=10.0),
+              proposal_window=1.0,
+              min_bound=0.0,
+              max_bound=None),
+    Parameter(name='mu_r',
+              initial_value=250,
+              prior=NormalDistribution(mean=5.0, variance=10.0),
+              proposal_window=5.0,
+              min_bound=None,
+              max_bound=None),
+    Parameter(name='var_r',
+              initial_value=1.0,
+              prior=ExponentialDistribution(mean=10.0),
+              proposal_window=1.0,
+              min_bound=0.0,
+              max_bound=None),
+    Parameter(name='var_e',
+              initial_value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
               max_bound=None),
     ]
-############################################################################
-# End model-specific initialization code
-############################################################################
 
 
-
-
-def calculate_incidence_row_for_indiv(gekko):
-    '''This function should return a python list. This list will be a single
-    row in the incidence matrix.  
-    It should contain a coefficient (e.g. 1 or 0) for each of the parameters 
-    that appear in the equation of the linear predictor for this particular 
-    gekko.
-    
-    The incidence matrix will be multiplied by a parameter values. So the length
-    of each row that you return here should be equal to the number of parameters
-    
-    '''
-    
-    treatment = gekko.treatment
-    INCIDENCE_MATRIX_ROW = []
-    if treatment == 0:
-        INCIDENCE_MATRIX_ROW = [1, 0]
-    elif treatment == 1:
-        INCIDENCE_MATRIX_ROW = [0, 1]
-    
-    return INCIDENCE_MATRIX_ROW
-    
-
-
-# you should not need to alter this next line.
-the_incidence_matrix = None
-    
-    
-def ln_likelihood(the_data, param_list):
-    '''Calculates the log-likelihood of the parameter values in `param_list`
-    based on `the_data`
-    '''
-    global the_incidence_matrix
-    if verbose:
-        sys.stderr.write('param = ' + str(param_list) + '\n')
-    ############################################################################
-    # Begin model-specific log-likelihood code
-    ############################################################################
-    first_p, second_p, third_p, fourth_p, fifth_p = param_list
-    alpha_0 = first_p
-    alpha_1 = second_p
-    var_g = third_p
-    var_L_interaction = fourth_p
-    var_error = fifth_p
-    
-    # The data is stored in multiple forms.  They will be explained below as needed.
-    # You should not have to change the next 4 lines...
-    blocked_by_family = the_data[0]
-    observed_values = the_data[1]
-    family_sizes = the_data[2]
-    flattened_data = the_data[3]
-    
-    # do our "sanity-checking" to make sure that we are in the legal range of 
-    #   the parameters.
-    #
-    for p in param_list:
-        if p != p:
-            return float('-inf')
-    if var_g < 0.0:
-        return float('-inf')
-    if var_error < 0.0:
-        return float('-inf')
-
-
-    FIXED_EFFECT_LIST = [alpha_0, alphas_1]
-    
-    # this next line creates a column vector, to be multiplied by the incidence 
-    #   matrix (you should not have to change this)
-    fixed_effects = numpy.matrix(FIXED_EFFECT_LIST).transpose()
-    
-    # this calculates a vector of expected values from the fixed effects and 
-    #   incidence matrix  (you should not have to change this)
-    expected_values = the_incidence_matrix*fixed_effects
-    
-    
-    # Because the values for the gekkos from different familys will have a 
-    #   covariance of 0, most of the covariance matrix will be 0's and we can
-    #   create it in block-diagonal form that is easier to work with (and results
-    #   in much faster calculations.
-    # Here will create a list of matrices.  This will be the 
-    #   non-zero blocks along the diagonal of the covariance matrix.
-    # You won't have to change this next line.
-    non_zero_covariance_blocks = list()
-
-    var_individ_s = var_g + var_error
-    var_individ_l = var_g + var_L_interaction + var_error
-    covar_fam_s = var_g 
-    covar_fam_l = var_g + var_L_interaction
-
-    # Here we walk over the data set one family at a time.
-    for family_index, family_data in enumerate(flattened_data):
-        # num_in_family will hold the number of gekkos from this family
-        #   from all parental combinations and treatments.
-        num_in_family = family_sizes[family_index]
-        
-        # make an empty covariance matrix for this family (no need to change this).
-        empty_row = [None]*num_in_family
-        # make an empty maxtrix by copying the empty row num_in_family times
-        #   (you don't have to change this line).
-        family_cov = [copy(empty_row) for i in xrange(num_in_family)]
-        
-        for i, gekko_i in enumerate(family_data):
-            for j in range(i, num_in_family):
-                gekko_j = family_data[j]
-
-                ################################################################
-                # here we need to fill in family_cov[i][j] with the
-                # covariance for gekko_i and gekko_j
-                #
-                # We'll do this by examining the attributes (such as gekko_i.mom 
-                #   and gekko_i.dad) in gekko_i and gekko_j to fill in cov_element
-                #
-                # and then storing cov_element
-                ################################################################
-                if i == j:
-                    if gekko_i.treatment == 0:
-                        cov_element = var_individ_s
-                    else:
-                        cov_element = var_individ_l
-                else:
-                    if gekko_i.treatment == 0:
-                        cov_element = covar_fam_s
-                    else:
-                        cov_element = covar_fam_l
-                
-                
-                ################################################################
-                # this is where we store the covariance element (the cov matrix
-                # is symmetric, so we store it in (i, j) and (j, i)
-                # If you calculated the covariance and stored it in the variable
-                #   called cov_element, then you should not have to change this.
-                ################################################################
-                family_cov[i][j] = cov_element
-                family_cov[j][i] = cov_element
-        # append this non-zero part of the covariance matrix to a list
-        #   that will be used to represent a block diagonal matrix for all 
-        #   measurements.
-        # first we'll convert it from a python list of lists to a numpy matrix
-        # (you should not have to change this).
-        numpy_fam_cov = numpy.matrix(family_cov)
-        non_zero_covariance_blocks.append(numpy_fam_cov)
-
-    # here we calculate the inverse (exploiting the block diagonal structure)
-    inverse_var = invert_block_diagonal(non_zero_covariance_blocks)
-
-    # here we calculate the log of the determinant (exploiting the block diagonal structure)
-    ln_determinant = ln_determinant_block_diagonal(non_zero_covariance_blocks)
-
-    # We can calculate residuals by substracting observed_values from
-    #   expected_values.  When we convert the python lists of values 
-    #   to numpy.matrix objects, we get a column matrix. 
-    residuals_column = expected_values - observed_values
-
-    # We can transpose the column vector of residuals to get a row...
-    residuals_row = residuals_column.transpose()
-    
-    scaled_dev_sq = residuals_row*inverse_var*residuals_column
-    ln_l = -0.5*(ln_determinant + float(scaled_dev_sq))
-
-    if verbose:
-        sys.stderr.write('ln_l = ' + str(ln_l) + '\n')
-    # This is how we send the result back to the function that called this
-    #   function.  
-    return ln_l
-    ############################################################################
-    # End model-specific log-likelihood code
-    ############################################################################
-
-
-def calculate_incidence_matrix(the_data):
-    '''This function is called to fill in the incidence matrix for the model.
-    
-    You should not need to touch this code.  It calls calculate_incidence_row_for_indiv
-    repeatedly to actually fill the matrix.
-    '''
-    global the_incidence_matrix
-    the_incidence_matrix_row_list = []
-    for family_index, family_data in enumerate(the_data):
-        for treatment_index, indiv_data in enumerate(family_data):
-            for indiv in indiv_data:
-                the_incidence_matrix_row = calculate_incidence_row_for_indiv(indiv)
-                the_incidence_matrix_row_list.append(the_incidence_matrix_row)
-    the_incidence_matrix = numpy.matrix(the_incidence_matrix_row_list)
-
-
-
-
-
-def block_diag(*arrs):
-    """Create a new diagonal matrix from the provided arrays.
-
-    Parameters
-    ----------
-    a, b, c, ... : ndarray
-        Input arrays.
-
-    Returns
-    -------
-    D : ndarray
-        Array with a, b, c, ... on the diagonal.
-
-    Code from http://mail.scipy.org/pipermail/scipy-user/attachments/20090520/f30c0928/attachment.obj
-    posted by Stefan van der Walt http://mail.scipy.org/pipermail/scipy-user/2009-May/021101.html
-    """
-    arrs = [numpy.asarray(a) for a in arrs]
-    shapes = numpy.array([a.shape for a in arrs])
-    out = numpy.zeros(numpy.sum(shapes, axis=0))
-
-    r, c = 0, 0
-    for i, (rr, cc) in enumerate(shapes):
-        out[r:r + rr, c:c + cc] = arrs[i]
-        r += rr
-        c += cc
-    return out
-
-def invert_block_diagonal(block_list):
-    inv_block_list = []
-    for block in block_list:
-        inv_block = numpy.linalg.inv(block)
-        inv_block_list.append(inv_block)
-    return block_diag(*inv_block_list)
-
-def ln_determinant_block_diagonal(block_list):
-    det = 0.0
-    for block in block_list:
-        det = det + log(numpy.linalg.det(block))
-    return det
 
 def propose_parameter(old_p, param_obj):
     ''' Returns a new, proposed value that is drawn from
@@ -682,45 +536,179 @@ def do_mcmc(data_collections, num_iterations, param_output_stream, sample_freq):
             param_output_stream.write(str(iteration) + '\t' + str(curr_lnL) + '\t' + params_tab_separated + '\n')
     return num_accepted
 
-def process_data(data_set, num_treatments):
-    '''To make it easier to deal with the data, we'll calculate a few summaries
-    of the data.  Three items will be returned:
-        the data_set,
-        the observations,
-        the number of individuals in each mating group.
+def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with_both_by_yf, all_years, all_fields):
+    '''Here we get dictionaries that contain all of the individuals. There
+    are four dictionaries (one for each treatment) and all so a set of all years,
+    and a set field numbers.
+    
+    This function will create the LatentVariable instances, and it will also
+    create groupings of the Coconut objects that will make it easy to traverse
+    the entire data set in a variety of ways.
+    
+    The function returns:
+        0. the data set;
+        1. a list of "year effect" latent variables;
+        2. a list of "field effect" latent variables.
+        3. a list of "field x nitrogen effect" latent variables.
+        4. a list of "field x phosphorus effect" latent variables.
+        5. a list of "field x both fertilizers effect" latent variables.
+    
+    The data_set object has the following attributes
+        individuals (a list of all Coconut objects)
+        by_year (a list of SameYearGroup objects)
+        by_field (a list of SameFieldGroup objects)
+        by_field_nitro_only (a list of SameFieldTreatmentGroup objects)
+        by_field_phosph_only (a list of SameFieldTreatmentGroup objects)
+        by_field_both (a list of SameFieldTreatmentGroup objects)
     '''
-    block_sizes = []
-    observed_values = []
-    flattened_data = []
-    data_set.treatment_list = [TreatmentList() for i in xrange(num_treatments)]
-    data_set.num_fam = len(data_set)
+    sorted_years = list(all_years)
+    sorted_years.sort()
+    sorted_fields = list(all_fields)
+    sorted_fields.sort()
 
-    for group_data in data_set:
-        sz = 0
-        flat = []
-        group_data.sum_y = 0.0
-        group_data.num = 0
-        for treat_ind, group_treatment_data in enumerate(group_data):
-            treatment_group = data_set.treatment_list[treat_ind]
-            treatment_group.append(group_treatment_data)
-            sz = sz + len(group_treatment_data)
-            flat.extend(group_treatment_data)
-            group_treatment_data.sum_y = 0.0
-            for gekko in group_treatment_data:
-                group_treatment_data.sum_y += gekko.y
-                observed_values.append(gekko.y)
-            group_treatment_data.num = len(group_treatment_data)
-            group_treatment_data.family = group_data
-            group_treatment_data.treatment_group = treatment_group
-            group_data.sum_y += group_treatment_data.sum_y
-            group_data.num += group_treatment_data.num
-            group_data.all_families = data_set
-            treatment_group.num += group_treatment_data.num
-            treatment_group.sum_y += group_treatment_data.sum_y
-        flattened_data.append(flat)
-        block_sizes.append(sz)
-    observed_values = numpy.matrix(observed_values).transpose()
-    return data_set, observed_values, block_sizes, flattened_data
+    # create latent variables for each year
+    year_lv_list = []
+    for year in sorted_years:
+        year_lv = LatentVariable(name="year_" + str(year),
+                                 initial_value=0.0,
+                                 prior=NormalDistribution(0, variance=global_parameter_list[ParamIndex.VAR_A]),
+                                 proposal_window=1.0)
+        year_lv_list.append(year_lv)
+
+    # create latent variables for each field x treatment
+    field_lv_list = []
+    field_nitro_lv_list = []
+    field_phospho_lv_list = []
+    field_both_lv_list = []
+    for field in sorted_fields:
+        field_lv = LatentVariable(name="field_" + str(field),
+                                  initial_value=0.0,
+                                  prior=NormalDistribution(mean=global_parameter_list[ParamIndex.MU_B],
+                                                           variance=global_parameter_list[ParamIndex.VAR_B]),
+                                  proposal_window=1.0)
+        field_lv_list.append(field_lv)
+        
+        nitro_lv = LatentVariable(name="field_" + str(field) + "_nitro",
+                                  initial_value=0.0,
+                                  prior=NormalDistribution(mean=global_parameter_list[ParamIndex.MU_G],
+                                                           variance=global_parameter_list[ParamIndex.VAR_G]),
+                                  proposal_window=1.0)
+        field_nitro_lv_list.append(nitro_lv)
+        
+        phospho_lv = LatentVariable(name="field_" + str(field) + "_phospho",
+                                  initial_value=0.0,
+                                  prior=NormalDistribution(mean=global_parameter_list[ParamIndex.MU_D],
+                                                           variance=global_parameter_list[ParamIndex.VAR_D]),
+                                  proposal_window=1.0)
+        field_phospho_lv_list.append(phospho_lv)
+        
+        both_lv = LatentVariable(name="field_" + str(field) + "_both",
+                                  initial_value=0.0,
+                                  prior=NormalDistribution(mean=global_parameter_list[ParamIndex.MU_R],
+                                                           variance=global_parameter_list[ParamIndex.VAR_R]),
+                                  proposal_window=1.0)
+        field_both_lv_list.append(both_lv)
+    
+    
+    data = Dataset()
+    data.individuals = []
+    data.by_year = []
+    data.by_field = []
+    data.by_field_nitro_only = []
+    data.by_field_phosph_only = []
+    data.by_field_both = []
+    
+    for year_index, year in enumerate(sorted_years):
+        same_year_group = SameYearGroup()
+        year_lv = year_lv_list[year_index]
+        for field_index, field in enumerate(sorted_fields):
+            field_lv = field_lv_list[field_index]
+
+            key = (year, field)
+            neither = no_fert_by_yf.setdefault(key, SameFieldTreatmentYearGroup())
+            neither.num = len(neither)
+            neither.sum_mass = sum([el.mass for el in neither])
+            data.individuals.extend(neither)
+            same_year_group.append(neither)
+            neither.treatment_variable = None
+            neither.field_variable = field_lv
+            neither.year_variable = year_lv
+            
+            nitro = with_nitrogen_by_yf.setdefault(key, SameFieldTreatmentYearGroup())
+            nitro.num = len(nitro)
+            nitro.sum_mass = sum([el.mass for el in nitro])
+            data.individuals.extend(nitro)
+            same_year_group.append(nitro)
+            nitro.treatment_variable = field_nitro_lv_list[field_index]
+            nitro.field_variable = field_lv
+            nitro.year_variable = year_lv
+
+            phospho = with_phosphorus_by_yf.setdefault(key, SameFieldTreatmentYearGroup())
+            phospo.num = len(phospho)
+            phosho.sum_mass = sum([el.mass for el in phospho])
+            data.individuals.extend(phosph)
+            same_year_group.append(phosph)
+            phospho.treatment_variable = field_phospho_lv_list[field_index]
+            phospho.field_variable = field_lv
+            phospho.year_variable = year_lv
+
+            both = with_both_by_yf.setdefault(key, SameFieldTreatmentYearGroup())
+            both.num = len(both)
+            both.sum_mass = sum([el.mass for el in both])
+            data.individuals.extend(both)
+            same_year_group.append(both)
+            both.treatment_variable = field_both_lv_list[field_index]
+            both.field_variable = field_lv
+            both.year_variable = year_lv
+
+        same_year_group.num = sum([i.num for i in same_year_group])
+        same_year_group.sum_mass = sum([i.sum_mass for i in same_year_group])
+        data.by_year.append(same_year_group)
+
+    for field_index, field in enumerate(sorted_fields):
+        same_field_group = SameFieldGroup()
+        same_field_nitro_group = SameFieldTreatmentGroup()
+        same_field_phospho_group = SameFieldTreatmentGroup()
+        same_field_both_group = SameFieldTreatmentGroup()
+
+        for year_index, year in enumerate(sorted_years):
+            key = (year, field)
+            neither = no_fert_by_yf[key]
+            same_field_group.append(neither)
+            
+            nitro = with_nitrogen_by_yf[key]
+            same_field_group.append(nitro)
+            same_field_nitro_group.append(nitro)
+
+            phospho = with_phosphorus_by_yf[key]
+            same_field_group.append(phosph)
+            same_field_phospho_group.append(phospho)
+
+            both = with_both_by_yf[key]
+            same_field_group.append(both)
+            same_field_both_group.append(both)
+            
+        same_field_group.num = sum([i.num for i in same_field_group])
+        same_field_group.sum_mass = sum([i.sum_mass for i in same_field_group])
+        same_field_group.sum_year_treatment_effects = self.calc_sum_year_treatment()
+        data.by_field.append(same_field_group)
+        
+        same_field_nitro_group.num = sum([i.num for i in same_field_nitro_group])
+        same_field_nitro_group.sum_mass = sum([i.sum_mass for i in same_field_nitro_group])
+        same_field_group.sum_field_year_effects = self.calc_sum_field_year()
+        data.by_field_nitro_only.append(same_field_nitro_group)
+
+        same_field_phospho_group.num = sum([i.num for i in same_field_phospho_group])
+        same_field_phospho_group.sum_mass = sum([i.sum_mass for i in same_field_phospho_group])
+        same_field_group.sum_field_year_effects = self.calc_sum_field_year()
+        data.by_field_phosph_only.append(same_field_phospho_group)
+
+        same_field_both_group.num = sum([i.num for i in same_field_both_group])
+        same_field_both_group.sum_mass = sum([i.sum_mass for i in same_field_both_group])
+        same_field_group.sum_field_year_effects = self.calc_sum_field_year()
+        data.by_field_both.append(same_field_both_group)
+          
+    return data, year_lv_list, field_lv_list, field_nitro_lv_list, field_phospho_lv_list, field_both_lv_list
 
 def read_data(filepath):
     '''Reads filepath as a tab-separated csv file and returns a 3dimensional data matrix.'''
@@ -730,66 +718,80 @@ def read_data(filepath):
     if not os.path.exists(filepath):
         raise ValueError('The file "' + filepath + '" does not exist')
     
-    TREATMENT_CODES = 'SL'    
-    MAX_TREATMENT_VALUE = len(TREATMENT_CODES) - 1
-    
     # Here we create a csv reader and tell it that a tab (\t) is the column delimiter
     entries = csv.reader(open(filepath, 'rbU'), delimiter=',')
 
     # Here we check that file has the headers that we exect
     first_row = entries.next()
-    expected_headers = ['family', 'treatment', 'y (growth rate)']
+    expected_headers = ['year', 'field', 'nitrogen', 'phosphorus', 'individual', 'mass']
     for got, expected in itertools.izip(first_row, expected_headers):
         if got.lower().strip() != expected:
             raise ValueError('Error reading "' + filepath + '": expecting a column labelled "' + expected + '", but found "' + got + '" instead.')
 
-    # It is not too hard to have this loop put the data in the right spot in the
-    #   matrix, so that the data file can be somwhat flexible.
 
-    by_family = {}
+    
+    with_nitrogen_by_yf = {}
+    with_phosphorus_by_yf = {}
+    with_both_by_yf = {}
+    no_fert_by_yf = {}
+    all_years = set()
+    all_fields = set()
     for n, row in enumerate(entries):
-        fam_id, treatment_code, value = row
+        year, field, nitrogen, phosphorus, individual, mass = row
         try:
-            fam_id = int(fam_id)
+            year = int(year)
         except:
-            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer for family ID, but got ' + str(fam_id))
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer for year, but got ' + str(year))
         try:
-            treatment_id = TREATMENT_CODES.index(treatment_code.upper())
-            assert(treatment_id >= 0 and treatment_id <= MAX_TREATMENT_VALUE)
+            field = int(field)
+            assert(field >= 0)
         except:
-            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting a single letter code (one of "' + TREATMENT_CODES + '") for the treatment, but got ' + str(treatment_code))
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an integer for field, but got ' + str(field))
         try:
-            value = float(value)
+            nitrogen = int(nitrogen)
+            assert(nitrogen == 0 or nitrogen == 1)
         except:
-            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an number for the trait value, but got ' + str(value))
-        # a new family corresponds to an empty dictionary of individuals
-        #   for the 0, and 1 treatment. So we can create a list with two empty
-        #   dictionaries as the "blank" entry.
-        fam_array = by_family.get(fam_id)
-        if fam_array is None:
-            fam_array = Family([FamilyTreatmentList() for i in range(MAX_TREATMENT_VALUE + 1)])
-            by_family[fam_id] = fam_array
-        # now we grab the appropriate one for this treatment
-        list_for_fam_treatment = fam_array[treatment_id]
-        list_for_fam_treatment.append(Gekko(family=fam_id, 
-                                            treatment=treatment_id,
-                                            y=value))
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an 0 or 1 for nitrogen, but got ' + str(nitrogen))
+        try:
+            phosphorus = int(phosphorus)
+            assert(phosphorus == 0 or phosphorus == 1)
+        except:
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting an 0 or 1 for phosphorus, but got ' + str(phosphorus))
+        try:
+            mass = float(mass)
+            assert(mass >= 0.0)
+        except:
+            raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting a positive number for mass, but got ' + str(mass))
 
-    fam_keys = by_family.keys()
-    fam_keys.sort()
+        all_years.add(year)
+        all_fields.add(year)
 
-    # Now we'll sort the data matrix and print some status information
-    status_stream = sys.stdout
-    status_stream.write("Data read for " + str(len(fam_keys)) + " families...\n")
-    full_data = AllFamilies()
-    for i, fam_id in enumerate(fam_keys):
-        treatments_list = by_family[fam_id]
-        status_stream.write("  Mating group index=" + str(i) + " (id in datafile = " + str(fam_id) + "):\n")
-        full_data.append(treatments_list)
-        for treat_ind, indiv_list in enumerate(treatments_list):
-            treatment_code = TREATMENT_CODES[treat_ind]
-            status_stream.write('    ' + str(len(indiv_list)) + ' individuals in with treatment code "' + treatment_code + '" (numerical code ' + str(treat_ind) + ')\n')
-    return process_data(full_data, len(TREATMENT_CODES))
+        coconut = Coconut(field=field,
+                          year=year,
+                          plus_n=nitrogen,
+                          plus_p=phosphorus,
+                          mass=mass)
+
+        # Get the group with the same year, field, and treatment
+        if nitrogen == 1:
+            if phosphorus == 1:
+                coconut.same_yft_group = with_both_by_yf.setdefault((year, field), SameFieldTreatmentYearGroup())
+            else:
+                coconut.same_yft_group = with_nitrogen_by_yf.setdefault((year, field), SameFieldTreatmentYearGroup())
+        else:
+            if phosphorus == 1:
+                coconut.same_yft_group = with_phosphorus_by_yf.setdefault((year, field), SameFieldTreatmentYearGroup())
+            else:
+                coconut.same_yft_group = no_fert_by_yf.setdefault((year, field), SameFieldTreatmentYearGroup())
+
+        coconut.same_yft_group.append(coconut)
+    
+    return process_data(no_fert_by_yf, 
+                        with_nitrogen_by_yf,
+                        with_phosphorus_by_yf,
+                        with_both_by_yf, 
+                        all_years,
+                        all_fields)
     
 
 def print_help():
@@ -831,9 +833,6 @@ if __name__ == '__main__':
         print_help()
         sys.exit(1)
 
-    real_data = read_data(filepath)
-    calculate_incidence_matrix(real_data[0])
-
     # The number of simulations is the last parameter...
     #
     num_iterations = int(arguments[-2])
@@ -848,6 +847,8 @@ if __name__ == '__main__':
             sys.exit('Expecting an initial value for the parameter "' + param.name + '" to be >=' + param.min_bound + ' but got "' + v + '"')
         if param.max_bound is not None and param.initial_value > param.max_bound:
             sys.exit('Expecting an initial value for the parameter "' + param.name + '" to be <=' + param.max_bound + ' but got "' + v + '"')
+
+    real_data = read_data(filepath)
     
     param_output_stream = sys.stderr
     param_output_stream.write("Iteration\tlnL")
