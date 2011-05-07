@@ -46,16 +46,33 @@ class SameFieldTreatmentYearGroup(list):
         '''Returns the sum of the field effects across the group'''
         return self.num * self.field_variable.value
     def calc_sum_year(self):
-        '''Returns the sum of the field effects across the group'''
+        '''Returns the sum of the year effects across the group'''
         return self.num * self.year_variable.value
     def calc_sum_field_treatment(self):
+        '''Returns the sum of the field and treatment effects across the group'''
         return self.calc_sum_treatment() + self.calc_sum_field()
     def calc_sum_year_treatment(self):
+        '''Returns the sum of the year and treatment effects across the group'''
         return self.calc_sum_treatment() + self.calc_sum_year()
     def calc_sum_field_year(self):
+        '''Returns the sum of the field and treatment effects across the group'''
         return self.calc_sum_field() + self.calc_sum_year()
         
 class GroupOfSameFieldTreatmentYearGroup(list):
+    def recalculate_data_sums(self):
+        n = 0
+        mass = 0.0
+        for element in self:
+            n = n + element.num
+            mass = mass + element.sum_mass
+        self.num = n
+        self.sum_mass = mass
+
+    def recalculate_all_sums(self):
+        self.recalculate_data_sums()
+        self.recalculate_sums_over_other_effects()
+
+
     def calc_sum_field_treatment(self):
         ft = 0.0
         for group in self:
@@ -72,7 +89,7 @@ class GroupOfSameFieldTreatmentYearGroup(list):
             ft = ft + group.calc_sum_field_year()
         return ft
 
-class SameYearGroup(list):
+class SameYearGroup(GroupOfSameFieldTreatmentYearGroup):
     '''Holds all of the SameFieldTreatmentYearGroup objects that share
     a particular year
     '''
@@ -81,7 +98,10 @@ class SameYearGroup(list):
         self.sum_mass = 0.0
         self.sum_field_treatment_effects = 0.0
 
-class SameFieldGroup(list):
+    def recalculate_sums_over_other_effects(self):
+        self.sum_field_treatment_effects = self.calc_sum_field_treatment()
+
+class SameFieldGroup(GroupOfSameFieldTreatmentYearGroup):
     '''Holds all of the SameFieldTreatmentYearGroup objects that share
     a particular field
     '''
@@ -90,7 +110,10 @@ class SameFieldGroup(list):
         self.sum_mass = 0.0
         self.sum_year_treatment_effects = 0.0
 
-class SameFieldTreatmentGroup(list):
+    def recalculate_sums_over_other_effects(self):
+        self.sum_year_treatment_effects = self.calc_sum_year_treatment()
+
+class SameFieldTreatmentGroup(GroupOfSameFieldTreatmentYearGroup):
     '''Holds all of the SameFieldTreatmentYearGroup objects that share
     a particular field and treatment
     '''
@@ -99,13 +122,51 @@ class SameFieldTreatmentGroup(list):
         self.sum_mass = 0.0
         self.sum_field_year_effects = 0.0
 
-class GammaDistribution(object):
+    def recalculate_sums_over_other_effects(self):
+        self.sum_field_year_effects = self.calc_sum_field_year()
+        
+
+class ContinuousDistribution(object):
+    '''The continous distribution class just has some helpers that make it 
+    easier to write code when the key qualities of a distribution (mean and 
+    variance) could either be specified by fixed numbers or Parameter objects
+    
+    These methods are used in the classes derived from ContinuousDistribution
+    '''
+    def get_mean(self):
+        try:
+            return self.mean.value
+        except:
+            return self.mean        
+
+    def get_variance(self):
+        try:
+            return self.var.value
+        except:
+            if self.var is None:
+                try:
+                    sd = self.sd.value
+                except:
+                    sd = self.sd
+                return sd*sd
+            else:
+                return self.var
+
+class GammaDistribution(ContinuousDistribution):
     def __init__(self, mean, variance):
         ''' mean = shape*scale
             var = shape*scale*scale
         '''
-        self.scale = variance / mean
-        self.shape = mean / self.scale
+        self.var = variance
+        self.mean = mean
+
+    def get_scale_shape(self):
+        mean = self.get_mean()
+        variance = self.get_variance()
+        
+        scale = variance / mean
+        shape = mean / self.scale
+        return scale, shape
         
 
     def calc_ln_prob_ratio(self, numerator_variate, denominator_variate):
@@ -117,11 +178,12 @@ class GammaDistribution(object):
         So: 
             ln[f(numerator)] - ln[f(denominator)] = (denominator - numerator)/mean
         '''
-        ln_numerator =  (self.shape-1)*log(numerator_variate) - numerator_variate/self.scale
-        ln_denominator = (self.shape-1)*log(denominator_variate) - denominator_variate/self.scale
+        scale, shape = self.get_scale_shape()
+        ln_numerator =  (shape-1)*log(numerator_variate) - numerator_variate/scale
+        ln_denominator = (shape-1)*log(denominator_variate) - denominator_variate/scale
         return ln_numerator - ln_denominator
 
-class ExponentialDistribution(object):
+class ExponentialDistribution(ContinuousDistribution):
     def __init__(self, mean):
         self.mean = mean
     def calc_ln_prob_ratio(self, numerator_variate, denominator_variate):
@@ -133,16 +195,15 @@ class ExponentialDistribution(object):
         So: 
             ln[f(numerator)] - ln[f(denominator)] = (denominator - numerator)/mean
         '''
-        return (denominator_variate - numerator_variate)/self.mean
+        return (denominator_variate - numerator_variate)/self.get_mean()
 
-class NormalDistribution(object):
+class NormalDistribution(ContinuousDistribution):
     def __init__(self, mean, sd=None, variance=None):
         '''Takes the mean and standard deviation.'''
         self.mean = mean
-        if variance is None:
-            self.var = sd*sd
-        else:
-            self.var = variance
+        self.sd = sd
+        self.var = variance
+
     def calc_ln_prob_ratio(self, numerator_variate, denominator_variate):
         '''
             f(x) = (2 pi sd^2) ^ -0.5  e^(-(x-mean)^2/(2sd^2))
@@ -150,13 +211,16 @@ class NormalDistribution(object):
             ln[f(x)] = -0.5 ln[2 pi sd^2] - (x-mean)^2/(2sd^2)
         
         So: 
-            ln[f(numerator)] - ln[f(denominator)] = ((denominator-mean)^2 - (numerator-mean)^2)/(2sd^2)
-                                                  = (denominator^2 - numerator^2-mean)^2 - (numerator-mean)^2)/(2sd^2)
+            ln[f(numerator)] - ln[f(denominator)] = ((denominator - mean)^2 - (numerator-mean)^2)/(2sd^2)
+                                                  = (denominator^2 - numerator^2 + 2*(numerator-denominator)*mean)/(2sd^2)
         '''
+        mean = self.get_mean()
+        variance = self.get_variance()
+
         d_sq = denominator_variate*denominator_variate
         n_sq = numerator_variate*numerator_variate
-        third_term = 2*self.mean*(numerator_variate - denominator_variate)
-        return (d_sq - n_sq + third_term)/(2*self.var)
+        third_term = 2*mean*(numerator_variate - denominator_variate)
+        return (d_sq - n_sq + third_term)/(2*variance)
 
     
 class Parameter(object):
@@ -188,55 +252,55 @@ class ParamIndex:
     VAR_A, MU_B, VAR_B, MU_G, VAR_G, MU_D, VAR_D, MU_R, VAR_R, VAR_E = range(10)
 
 global_parameter_list = [
-    Parameter(name='var_a',
+    Parameter(name='var_a_year',
               initial_value=10.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=None,
               max_bound=None),
-    Parameter(name='mu_b',
+    Parameter(name='mu_b_field',
               initial_value=250,
               prior=GammaDistribution(mean=250.0, variance=50.0),
               proposal_window=5.0,
               min_bound=None,
               max_bound=None),
-    Parameter(name='var_b',
+    Parameter(name='var_b_field',
               initial_value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
               max_bound=None),
-    Parameter(name='mu_g',
+    Parameter(name='mu_g_nitro',
               initial_value=250,
               prior=NormalDistribution(mean=5.0, variance=10.0),
               proposal_window=5.0,
               min_bound=None,
               max_bound=None),
-    Parameter(name='var_g',
+    Parameter(name='var_g_nitro',
               initial_value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
               max_bound=None),
-    Parameter(name='mu_d',
+    Parameter(name='mu_d_phospho',
               initial_value=250,
               prior=NormalDistribution(mean=5.0, variance=10.0),
               proposal_window=5.0,
               min_bound=None,
               max_bound=None),
-    Parameter(name='var_d',
+    Parameter(name='var_d_phospho',
               initial_value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
               min_bound=0.0,
               max_bound=None),
-    Parameter(name='mu_r',
+    Parameter(name='mu_r_both',
               initial_value=250,
               prior=NormalDistribution(mean=5.0, variance=10.0),
               proposal_window=5.0,
               min_bound=None,
               max_bound=None),
-    Parameter(name='var_r',
+    Parameter(name='var_r_both',
               initial_value=1.0,
               prior=ExponentialDistribution(mean=10.0),
               proposal_window=1.0,
@@ -442,97 +506,120 @@ def update_fam_effects(curr_params, data, fam_effect_list, fam_l_iteraction_list
     return num_accepted        
 
 
-def update_fam_l_iteractions(curr_params, data, fam_effect_list, fam_l_iteraction_list):
-    alpha_0 = curr_params[ParamIndex.alpha_0]
-    alpha_1 = curr_params[ParamIndex.ALPHA_1]
-    var_interaction = curr_params[ParamIndex.VAR_L_INTERACTION]
-    var_error = curr_params[ParamIndex.VAR_ERROR]
-
-    all_fam_treatment1 = data.treatment_list[1]
+def update_year_effects(data, curr_params, year_effects):
+    by_year = data.by_year
+    assert(len(by_year) == len(year_effects))
+    var_error = curr_params[ParamIndex.VAR_E]
     
-    param_obj = Parameter(name='fam_l_intearction',
-          initial_value=0.0,
-          prior=NormalDistribution(mean=0.0, sd=sqrt(var_interaction)),
-          proposal_window=1.0,
-          min_bound=None,
-          max_bound=None)
+    denominator = 2*(var_error.value)
 
     num_accepted = 0
-    denominator = 2*var_error
-    for fam_ind, family in enumerate(data):
-        fam_effect = fam_effect_list[fam_ind]
-        param_val = fam_l_iteraction_list[fam_ind]
-        treat1 = family[1]
+    for year_index, data_for_year in enumerate(by_year):
+        latent_variable = year_effects[year_index]
+        current_value = latent_variable.value
+        proposed_value, ln_hastings_ratio = propose_parameter(current_value, latent_variable)
     
-        param_val_star, ln_hastings_ratio = propose_parameter(param_val, param_obj)
-    
-        sq_diff = param_val**2 - param_val_star**2
-        diff = param_val_star - param_val
-        numerator = treat1.num*sq_diff
-        numerator += 2*(treat1.sum_y - treat1.num*(alpha_1 + fam_effect))*diff
+        diff_param_sq = current_value**2 - proposed_value**2
+        diff_param = proposed_value - current_value
+        numerator = data_for_year.num*diff_param_sq
+        numerator += 2*(data_for_year.sum_mass - data_for_year.sum_field_treatment_effects)*diff_param
         ln_like_ratio = numerator/denominator
-        ln_prior_ratio = param_obj.prior.calc_ln_prob_ratio(param_val_star, param_val)
+
+        ln_prior_ratio = latent_variable.prior.calc_ln_prob_ratio(proposed_value, current_value)
     
         if metrop_hastings(ln_like_ratio, ln_prior_ratio, ln_hastings_ratio):
             num_accepted += 1
-            fam_l_iteraction_list[fam_ind] = param_val_star
-            all_fam_treatment1.sum_c += diff
-            data.sum_c_sq -= sq_diff
+            latent_variable.value = proposed_value
 
+    if num_accepted > 0:
+        # we need to update the sums of all of the year effects - there are more
+        #   efficient ways to do this (namely by only updating the parts of the
+        #   sum that change), but it won't make a huge difference for this application
+        #   
+        for group in data.by_field:
+            group.recalculate_sums_over_other_effects()
+        for group in data.by_field_nitro_only:
+            group.recalculate_sums_over_other_effects()
+        for group in data.by_field_phosph_only:
+            group.recalculate_sums_over_other_effects()
+        for group in data.by_field_both:
+            group.recalculate_sums_over_other_effects()
     return num_accepted        
     
     
-def do_mcmc(data_collections, num_iterations, param_output_stream, sample_freq):
-    data = data_collections[0]
-    curr_params = []
-    proposed_params = []
-    for p in global_parameter_list:
-        curr_params.append(p.initial_value)
-        proposed_params.append(p.initial_value)
-
+def do_mcmc(data_and_latent_variables, num_iterations, param_output_stream, sample_freq):
+    data = data_and_latent_variables[0]
+    all_individuals = obs_data.individuals
+    
+    # Each of the following "lv_list" variables will need to be updated
+    year_lv_list = data_and_latent_variables[1]
+    field_lv_list = data_and_latent_variables[2]
+    field_nitro_lv_list = data_and_latent_variables[3]
+    field_phospho_lv_list = data_and_latent_variables[4]
+    field_both_lv_list = data_and_latent_variables[5]
+    
     curr_lnL = 0.0  # Arbitrary, but does not matter, as we will do everything
                     #   with ln L ratios ...
-    num_params = len(curr_params)
     num_accepted = 0
     
-    fam_effects = []
-    fam_l_iteractions = []
-    blocked_by_family = data[0]
-    for fam in xrange(data.num_fam):
-        fam_effects.append(0.0)
-        fam_l_iteractions.append(0.0)
-    
+    # make a huge list of all of the parameters or latent variables (this will make it 
+    #   easier to print out the state at each iteration of the MCMC
+    all_variables_list = global_parameter_list + year_lv_list + field_lv_list + field_nitro_lv_list + field_phospho_lv_list + field_both_lv_list
+        
     for iteration in xrange(num_iterations):
 
-        p, accepted = update_alpha_0(curr_params, data)
-        curr_params[ParamIndex.ALPHA_0] = p
+        accepted = update_year_effects(data, global_parameter_list, year_lv_list)
         num_accepted += accepted
 
-        p, accepted = update_alpha_1(curr_params, data)
-        curr_params[ParamIndex.ALPHA_1] = p
-        num_accepted += accepted
-        
-        p, accepted = update_var_g(curr_params, data)
-        curr_params[ParamIndex.VAR_G] = p
-        num_accepted += accepted
-        
-        p, accepted = update_var_l_interaction(curr_params, data)
-        curr_params[ParamIndex.VAR_L_INTERACTION] = p
+        accepted = update_var_a(year_lv_list, global_parameter_list)
         num_accepted += accepted
 
-        p, accepted = update_var_error(curr_params, data, fam_effects, fam_l_iteractions)
-        curr_params[ParamIndex.VAR_ERROR] = p
-        num_accepted += accepted
-    
-        accepted = update_fam_effects(curr_params, data, fam_effects, fam_l_iteractions)
+        accepted = update_field_effects(data, global_parameter_list, field_lv_list)
         num_accepted += accepted
 
-        accepted = update_fam_l_iteractions(curr_params, data, fam_effects, fam_l_iteractions)
+        accepted = update_mu_b(field_lv_list, global_parameter_list)
         num_accepted += accepted
+
+        accepted = update_var_b(field_lv_list, global_parameter_list)
+        num_accepted += accepted
+
+        accepted = update_nitro_effects(data, global_parameter_list, field_nitro_lv_list)
+        num_accepted += accepted
+
+        accepted = update_mu_g(field_nitro_lv_list, global_parameter_list)
+        num_accepted += accepted
+
+        accepted = update_var_g(field_nitro_lv_list, global_parameter_list)
+        num_accepted += accepted
+
+        accepted = update_phospho_effects(data, global_parameter_list, field_phospho_lv_list)
+        num_accepted += accepted
+
+        accepted = update_mu_d(field_phospho_lv_list, global_parameter_list)
+        num_accepted += accepted
+
+        accepted = update_var_d(field_phospho_lv_list, global_parameter_list)
+        num_accepted += accepted
+
+        accepted = update_interaction_effects(data, global_parameter_list, field_both_lv_list)
+        num_accepted += accepted
+
+        accepted = update_mu_r(field_both_lv_list, global_parameter_list)
+        num_accepted += accepted
+
+        accepted = update_var_r(field_both_lv_list, global_parameter_list)
+        num_accepted += accepted
+
+        accepted = update_var_e(data, global_parameter_list)
+        num_accepted += accepted
+
 
         if iteration % sample_freq == 0:
-            params_as_str_list = [str(i) for i in curr_params + fam_effects + fam_l_iteractions]
+            # We convert every parameter or latent variable value to a string of characters to be written
+            params_as_str_list = [str(i.value) for i in all_variables_list]
+            # We introduce tabs between each element
             params_tab_separated = '\t'.join(params_as_str_list)
+            # We write a line to the parameter output stream.
             param_output_stream.write(str(iteration) + '\t' + str(curr_lnL) + '\t' + params_tab_separated + '\n')
     return num_accepted
 
@@ -644,10 +731,10 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
             nitro.year_variable = year_lv
 
             phospho = with_phosphorus_by_yf.setdefault(key, SameFieldTreatmentYearGroup())
-            phospo.num = len(phospho)
-            phosho.sum_mass = sum([el.mass for el in phospho])
-            data.individuals.extend(phosph)
-            same_year_group.append(phosph)
+            phospho.num = len(phospho)
+            phospho.sum_mass = sum([el.mass for el in phospho])
+            data.individuals.extend(phospho)
+            same_year_group.append(phospho)
             phospho.treatment_variable = field_phospho_lv_list[field_index]
             phospho.field_variable = field_lv
             phospho.year_variable = year_lv
@@ -661,8 +748,7 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
             both.field_variable = field_lv
             both.year_variable = year_lv
 
-        same_year_group.num = sum([i.num for i in same_year_group])
-        same_year_group.sum_mass = sum([i.sum_mass for i in same_year_group])
+        same_year_group.recalculate_all_sums()
         data.by_year.append(same_year_group)
 
     for field_index, field in enumerate(sorted_fields):
@@ -681,33 +767,37 @@ def process_data(no_fert_by_yf, with_nitrogen_by_yf, with_phosphorus_by_yf, with
             same_field_nitro_group.append(nitro)
 
             phospho = with_phosphorus_by_yf[key]
-            same_field_group.append(phosph)
+            same_field_group.append(phospho)
             same_field_phospho_group.append(phospho)
 
             both = with_both_by_yf[key]
             same_field_group.append(both)
+            same_field_nitro_group.append(both)
+            same_field_phospho_group.append(both)
             same_field_both_group.append(both)
             
-        same_field_group.num = sum([i.num for i in same_field_group])
-        same_field_group.sum_mass = sum([i.sum_mass for i in same_field_group])
-        same_field_group.sum_year_treatment_effects = self.calc_sum_year_treatment()
+        same_field_group.recalculate_all_sums()
         data.by_field.append(same_field_group)
         
-        same_field_nitro_group.num = sum([i.num for i in same_field_nitro_group])
-        same_field_nitro_group.sum_mass = sum([i.sum_mass for i in same_field_nitro_group])
-        same_field_group.sum_field_year_effects = self.calc_sum_field_year()
+        same_field_nitro_group.recalculate_all_sums()
         data.by_field_nitro_only.append(same_field_nitro_group)
 
-        same_field_phospho_group.num = sum([i.num for i in same_field_phospho_group])
-        same_field_phospho_group.sum_mass = sum([i.sum_mass for i in same_field_phospho_group])
-        same_field_group.sum_field_year_effects = self.calc_sum_field_year()
+        same_field_phospho_group.recalculate_all_sums()
         data.by_field_phosph_only.append(same_field_phospho_group)
 
-        same_field_both_group.num = sum([i.num for i in same_field_both_group])
-        same_field_both_group.sum_mass = sum([i.sum_mass for i in same_field_both_group])
-        same_field_group.sum_field_year_effects = self.calc_sum_field_year()
+        same_field_both_group.recalculate_all_sums()
         data.by_field_both.append(same_field_both_group)
-          
+    
+    # now we can do some "sanity checks" to make sure that we didn't miss anything
+    #   we will "assert" some statements that will be true (if we don't have any
+    #   bugs).
+    data.num = len(data.individuals)
+    data.sum_mass = sum([i.mass for i in data.individuals])
+    assert(data.num == sum([i.num for i in data.by_year]))
+    assert(data.num == sum([i.num for i in data.by_field]))
+    assert(data.sum_mass -  sum([i.sum_mass for i in data.by_year]) < 1e-5)
+    assert(data.sum_mass - sum([i.sum_mass for i in data.by_field]) < 1e-5)
+    
     return data, year_lv_list, field_lv_list, field_nitro_lv_list, field_phospho_lv_list, field_both_lv_list
 
 def read_data(filepath):
@@ -764,7 +854,7 @@ def read_data(filepath):
             raise ValueError("Error reading data row " + str(1 + n) + ' of "' + filepath + '": expecting a positive number for mass, but got ' + str(mass))
 
         all_years.add(year)
-        all_fields.add(year)
+        all_fields.add(field)
 
         coconut = Coconut(field=field,
                           year=year,
@@ -848,19 +938,34 @@ if __name__ == '__main__':
         if param.max_bound is not None and param.initial_value > param.max_bound:
             sys.exit('Expecting an initial value for the parameter "' + param.name + '" to be <=' + param.max_bound + ' but got "' + v + '"')
 
-    real_data = read_data(filepath)
+    data_and_latent_variables = read_data(filepath)
+
+    # the observed Dataset object is the first thing returned...    
+    obs_data = data_and_latent_variables[0]
+    # next come the lists of latent variables.
+    year_lv_list = data_and_latent_variables[1]
+    field_lv_list = data_and_latent_variables[2]
+    field_nitro_lv_list = data_and_latent_variables[3]
+    field_phospho_lv_list = data_and_latent_variables[4]
+    field_both_lv_list = data_and_latent_variables[5]
     
     param_output_stream = sys.stderr
     param_output_stream.write("Iteration\tlnL")
     for p in global_parameter_list:
         param_output_stream.write('\t' + p.name)
-    for n, f in enumerate(real_data[0]):
-        param_output_stream.write('\tfam' + str(n))
-    for n, f in enumerate(real_data[0]):
-        param_output_stream.write('\tfam_l_' + str(n))
+    for p in year_lv_list:
+        param_output_stream.write('\t' + p.name)
+    for p in field_lv_list:
+        param_output_stream.write('\t' + p.name)
+    for p in field_nitro_lv_list:
+        param_output_stream.write('\t' + p.name)
+    for p in field_phospho_lv_list:
+        param_output_stream.write('\t' + p.name)
+    for p in field_both_lv_list:
+        param_output_stream.write('\t' + p.name)
     param_output_stream.write('\n')
     
-    num_accepted = do_mcmc(real_data,
+    num_accepted = do_mcmc(data_and_latent_variables,
                            num_iterations, 
                            param_output_stream,
                            sample_freq)
