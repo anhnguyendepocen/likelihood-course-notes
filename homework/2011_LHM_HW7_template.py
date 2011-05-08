@@ -507,7 +507,9 @@ def do_mcmc(data_and_latent_variables, num_iterations, param_output_stream, samp
 
         accepted = update_SOME_OTHER_latent_effects(RELEVANT_SLICE_OF_DATA, global_parameter_list, THE_LIST_OF_LATENT_VARIABLEL)
         num_accepted += accepted
-
+        
+        YOU_WILL_HAVE_TO_WRITE_UPDATE_FUNCTIONS_FOR_ALL_YOUR_PARAMETERS_AND_LATENT_VARIABLES
+        
         # the funky % syntax means that we will only call write_sampled_parameters
         #   if iteration is a multiple of sample_freq
         if iteration % sample_freq == 0:
