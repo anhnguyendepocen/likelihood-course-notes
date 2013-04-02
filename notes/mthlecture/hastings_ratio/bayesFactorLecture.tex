@@ -1,1 +1,267 @@
-/Users/mholder/Documents/storage/talks/phycasWoodsHole2009/bayesFactorLecture.tex
+\include{preamble}
+\usepackage{cancel}
+\renewcommand{\Pr}{\mathbb{P}}
+\newcommand{\accept}[2]{\alpha({#1,#2})}
+\newcommand{\prop}[2]{q(#1,#2)}
+
+\begin{document}
+\pagecolor{white}
+\MyLogo{}
+\unitlength=1mm
+
+
+\section*{Marginal likelihood estimation}
+In ML model selection we judge models by their ML score and the number of parameters.
+In Bayesian context we:
+\begin{compactitem}
+	\item Use model averaging if we can ``jump'' between models (reversible jump methods, Dirichlet Process Prior, Bayesian Stochastic Search Variable Selection),
+	\item Compare models on the basis of their marginal likelihood.
+\end{compactitem}
+
+The Bayes Factor between two models:
+\[B_{10} = \frac{\Pr(D|M_1)}{\Pr(D|M_0)}\]
+ is a form of likelihood ratio.\\
+\myNewSlide
+
+\myNewSlide
+Bayes factor:
+\[B_{10} = \frac{\Pr(D|M_1)}{\Pr(D|M_0)}\]
+\vskip 2cm
+$\Pr(D|M_1)$ is the marginal probability of the data under the model, $M_1$:
+\[\Pr(D|M_1) = \int\Pr(D|\theta, M_1)\Pr(\theta)d\theta \]
+where $\theta$ is the set of parameters in the model.
+
+
+{\small (The next slides are from Paul Lewis)}
+
+\includepdf[pages={96-97}]{images/POLBayesian_MBL_29July2010.pdf} 
+
+\myNewSlide
+\includepdf[pages={100-101}]{images/POLBayesian_MBL_29July2010.pdf} 
+
+\myNewSlide
+{\bf Important point:} Bayes Factor comparison remove the effect of the prior on the model itself, but the priors on nuisance parameters still matter!
+
+Think about your priors - using a very parameter-rich model may not be overparameterized if you have prior knowledge about the parameter values.
+
+It is tricky to estimate $\Pr(\mbox{Data})$, there are ``black-box'' techniques (such as using the harmonic mean of the likelihoods sampled during MCMC), but they are quite unreliable.
+
+Ideally, you can construct an MCMC sampler that ``walks'' over different models then you can use MCMC to estimate a posterior probability of models.
+Or you can conduct parameter inference that averages over models. 
+Some common techniques for this are:
+\begin{compactitem}
+	\item reversible jump methods, 
+	\item use of a Dirichlet Process Prior to partition groups of data into subsets which share a homogeneous process,
+	\item  Bayesian Stochastic Search Variable Selection
+\end{compactitem}
+
+\myNewSlide
+\section*{Delete-Edge Move}
+\begin{picture}(-0,0)(-0,0)
+	\put(0,-10){\makebox(-50,-150)[l]{\includegraphics[scale=1]{images/delEdgeMove.pdf}}}
+	\put(0,-100){There would have to be a ``reverse'' Add-Edge move}
+\end{picture}
+
+\myNewSlide
+\section*{Homework}
+\Large
+Questions?
+\large
+\myNewSlide
+\section*{Richer models}
+What if we think:
+\begin{compactitem}
+	\item There is a threshold level of N, P, and soil moisture required to set seed,
+	\item N and P from fertilizer can run off if there is a lot of rain,
+	\item decomposition of leaf litter returns N and P to the soil in 3 - 4 years.
+\end{compactitem}
+How can we model this?
+
+\myNewSlide
+\section*{Likelihood-based inference when we cannot calculate a likelihood}
+
+The likelihood of parameter point $\theta$ is $\Pr(X|\theta)$, where $X=\mbox{data}$
+
+We can:
+\begin{compactitem}
+	\item calculate $\Pr(X|\theta)$ using rules of probability,
+	\item approximate $\Pr(X|\theta)$ by simulating lots of data sets, $Y_i$. Then count the fraction of simulations for which $Y_i=X$
+\end{compactitem}
+
+$$ \Pr(X|\theta) \approx \frac{\sum_{i=1}^nI(Y_i = X)}{n}$$
+
+where $I(Y_i = X)$ is an indicator function that is 1 if $Y_i = X$ and 0 otherwise.
+
+\myNewSlide
+\section*{Approximate Bayesian Computation}
+Set $S$ to be an empty list.\\
+While the number of samples in $S$ is small (below some threshold):
+\begin{compactitem}
+	\item Draw a set of parameter values, $\theta_j$, from the prior, $\Pr(\theta)$,
+	\item Simulate 1 dataset, $Y_1$, according to the parameter values, $\theta_j$.
+	\item If $Y_1 = X$, then add $\theta_j$ to $S$
+\end{compactitem}
+
+$S$ is then a sample of parameter values that approximate posterior.
+
+There is no autocorrelation in this procedure!
+
+\myNewSlide
+\section*{Approximate Bayesian Computation - a variant}
+Downsides: Slower than analytical calculations, and if $\Pr(X|\theta)$ is small (and it usually is) then you'll need lots of replicates.
+
+{\color{grey} Set $S$ to be an empty list.\\
+While the number of samples in $S$ is small (below some threshold):}
+\begin{compactitem}
+	{\color{grey}  \item  Draw a set of parameter values, $\theta_j$, from the prior, $\Pr(\theta)$,}
+	\item Simulate $n$ datasets, $Y_i$ for $i \in \{1,2,\ldots n\}$ according to the parameter values, $\theta_j$.
+	\item Add $\theta_j$ to $S$ and associate it with a weight, $w_j \approx \frac{\sum_{i=1}^nI(Y_i = X)}{n}$
+\end{compactitem}
+
+Do posterior calculations on weighted averages of the samples in $S$.
+
+
+\myNewSlide
+\section*{Approximate Bayesian Computation - another variant}
+{\color{grey} Set $S$ to be an empty list.\\
+While the number of samples in $S$ is small (below some threshold):}
+\begin{compactitem}
+	{\color{grey}  \item Draw a set of parameter values, $\theta_j$, from the prior, $\Pr(\theta)$,
+	\item Simulate $1$ dataset, $Y_1$, according to the parameter values, $\theta_j$.}
+	\item Add $\theta_j$ to $S$ if $||Y_1 - X|| < \epsilon$, where $\epsilon$ is a threshold distance.
+\end{compactitem}
+
+{\color{grey}  Do posterior calculations on the samples in $S$.}
+
+\myNewSlide
+\section*{Approximate Bayesian Computation - a fourth variant}
+Let $A(X)$ be a set of summary statistics calculated on $X$.
+
+{\color{grey} Set $S$ to be an empty list.\\
+While the number of samples in $S$ is small (below some threshold):}
+\begin{compactitem}
+	{\color{grey}  \item Draw a set of parameter values, $\theta_j$, from the prior, $\Pr(\theta)$,
+	\item Simulate $1$ dataset, $Y_1$, according to the parameter values, $\theta_j$.}
+	\item Add $\theta_j$ to $S$ if $||A(Y_1) - A(X)|| < \epsilon$, where $\epsilon$ is a threshold distance.
+\end{compactitem}
+
+{\color{grey}  Do posterior calculations on the samples in $S$.}
+
+\myNewSlide
+\section*{Approximate Bayesian Computation - yet another variant}
+Let $A(X)$ be a set of summary statistics calculated on $X$.
+
+{\color{grey} Set $S$ to be an empty list.\\
+While the number of samples in $S$ is small (below some threshold):}
+
+\begin{compactitem}
+	{\color{grey}\item Draw a set of parameter values, $\theta_j$, from the prior, $\Pr(\theta)$,
+	\item Simulate $1$ dataset, $Y_1$, according to the parameter values, $\theta_j$. }
+	\item Add $\theta_j$ to $S$ with a weight, $w_j$, proportional to  $w_j \approx ||A(Y_1) - A(X)||$.
+\end{compactitem}
+
+{\color{grey}Do posterior calculations on weighted averages of the samples in $S$.}
+
+
+\myNewSlide
+If $A$ is not a set of sufficient summary statistics, then you are throwing away information.
+
+In general ABC let's you tackle more difficult problems: it is easier to simulate under a complicated problem than it is to do inference.
+
+Usually a problem that can be tackled with ABC can be tackled by adding lots of latent variables. 
+But it may not be practical.
+
+
+\myNewSlide
+\section*{MCMC sampling techniques}
+\large
+There are lots:
+\begin{compactitem}
+	\item Metropolis-Hastings with the proposed state being drawn from:
+	 \begin{compactitem}
+		\item {\bf an arbitrary proposal distribution},
+		\item the prior,
+		\item the conditional posterior (Gibbs Sampling).
+	\end{compactitem}
+	\item adaptive rejection,
+	\item slice sampling,
+	\item Metropolis-coupled MCMC, 
+	\item delayed-rejection Metropolis-Hastings,
+	\item SAMC,
+	\item importance sampling,
+	\item $\ldots$
+\end{compactitem}
+
+\myNewSlide
+\section*{Proposing from the prior}
+\begin{eqnarray*}
+	\accept{j}{k} = \min\left[1, \left(\frac{\Pr(X|\theta=k)}{\Pr(X|\theta=j)}\right)\left(\frac{\Pr(\theta=k)}{\Pr(\theta=j)}\right)\left(\frac{\prop{k}{j}}{\prop{j}{k}}\right)\right]
+\end{eqnarray*}
+
+$$ \prop{j}{k} = \Pr(\theta=k)$$
+
+$$ \prop{k}{j} = \Pr(\theta=j)$$
+
+\begin{eqnarray*}
+	\accept{j}{k} = \min\left[1, \frac{\Pr(X|\theta=k)}{\Pr(X|\theta=j)}\right]
+\end{eqnarray*}
+
+\myNewSlide
+\section*{Proposing from the posterior of a parameter}
+\begin{eqnarray*}
+	\accept{j}{k} = \min\left[1, \left(\frac{\Pr(X|\theta=k)}{\Pr(X|\theta=j)}\right)\left(\frac{\Pr(\theta=k)}{\Pr(\theta=j)}\right)\left(\frac{\prop{k}{j}}{\prop{j}{k}}\right)\right]
+\end{eqnarray*}
+
+$$ \prop{j}{k} = \Pr(X|\theta=k)\Pr(\theta=k)$$
+
+$$ \prop{k}{j} = \Pr(X|\theta=j)\Pr(\theta=j)$$
+
+\begin{eqnarray*}
+	\accept{j}{k} = 1
+\end{eqnarray*}
+
+\myNewSlide
+\section*{Proposing from the posterior of a parameter}
+Sometimes one of the parameters, $\theta_m$, in our vector of $n$ parameters has a nice simple form conditional on the value of all of the other parameters at step $i$.
+
+If the distribution: $$\Pr(\theta_m|X,\{ \theta_1^{(i)}, \theta_2^{(i)},\ldots,\theta_{m-1}^{(i)},\theta_{m+1}^{(i)},\ldots,\theta_{n}^{(i)}\})$$
+has a simple form, then we can draw a value of $\theta_m^{(i+1)}$ easily.
+
+This usually happens when our prior is the \href{http://en.wikipedia.org/wiki/Conjugate_prior}{conjugate prior} for our likelihood.
+
+The latent variables in the homework {\em could} be sampled using Python's {\tt normalvariate} function.
+\myNewSlide
+\normalsize
+{\bf Importance sampling:} we simulate points from one distribution, and then reweight the points to transform them into samples from 
+a target distribution that we are interested in:\\
+
+\begin{picture}(-0,0)(-0,0)
+	\put(30,14){\makebox(-0,-150)[l]{\includegraphics[scale=0.9]{import_fig_densities.pdf}}}
+\end{picture}
+
+
+\myNewSlide
+\begin{picture}(-0,0)(-0,0)
+	\put(65,50){\makebox(-0,-150)[l]{\includegraphics[scale=0.55]{import_fig_densities.pdf}}}
+	\put(65,-50){\makebox(-0,-150)[l]{\includegraphics[scale=0.55]{import_wts_densities.pdf}}}
+\end{picture}
+
+
+\myNewSlide
+\begin{picture}(-0,0)(-0,0)
+	\put(65,50){\makebox(-0,-150)[l]{\includegraphics[scale=0.55]{import_fig_densities.pdf}}}
+	\put(65,-50){\makebox(-0,-150)[l]{\includegraphics[scale=0.55]{import_wts_densities.pdf}}}
+	\put(-30,-50){\makebox(-0,-150)[l]{\includegraphics[scale=0.55]{importance_distribution.pdf}}}
+	\put(160,-50){\makebox(-0,-150)[l]{\includegraphics[scale=0.55]{weighted_importance_dist.pdf}}}
+\end{picture}
+
+
+\myNewSlide
+\section*{Importance sampling}
+The method works well if the importance distribution is:
+\begin{itemize}
+	\item fairly similar to the target distribution, and
+	\item not ``too tight'' to allow sampling the full range of the target distribution
+\end{itemize}
+
+\end{document}

@@ -23,7 +23,8 @@
 % Use the natbib package for the bibliography
 \usepackage[round]{natbib}
 \bibliographystyle{apalike}
-\newcommand{\answer}[1]{{\color{red}\sc Begin Answer:\\}#1{\par\color{red}\sc End Answer.\\}}
+\newcommand{\answer}[1]{}
+%\newcommand{\answer}[1]{{\color{red}\sc Begin Answer:\\}#1{\par\color{red}\sc End Answer.\\}}
 
 \title{Brief Article}
 \author{The Author}
@@ -34,8 +35,8 @@
 
 \begin{document}
 \begin{center}
-	{\bf BIOL 701  Likelihood Methods in Biology: Homework \#3}\\
-	{Due Wednesday, March 9} 
+	{\bf BIOL 701  Likelihood Methods in Biology: Homework \#2}\\
+	{Due Monday, February 18} 
 \end{center}
 1. Radioactive decay is a classic ``Poisson process''.  The number of alpha particles emitted from a sample of radioactive material during a fixed unit of time follows the Poisson distribution:
 $$\Pr(X=k) = \frac{e^{-\lambda}\lambda^k}{k!}$$
@@ -79,8 +80,9 @@ Interval	I.D. & Particles detected & & Interval	I.D. & Particles detected \\
 	\ln L(\lambda = 2.6 ) & = & -38.63 \\
 	2 \left[\ln L(\lambda = 2 ) - \ln L(\lambda = 2.6 )\right] & = &  -3.29
 \end{eqnarray*}
-}
+
 This is not significant.  So we cannot reject the null that $\lambda = 2$.
+}
 \newpage
 
 

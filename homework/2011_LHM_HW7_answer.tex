@@ -19,11 +19,11 @@
 \usepackage{tipa}
 \usepackage{amsfonts}
 \usepackage[mathscr]{eucal}
-
+\usepackage{setspace}
 % Use the natbib package for the bibliography
 \usepackage[round]{natbib}
 \bibliographystyle{apalike}
-\newcommand{\answer}[1]{{\color{red}\sc Begin Answer:\\}#1{\par\color{red}\sc End Answer.\\}}
+\newcommand{\answer}[1]{{\color{red}\sc Begin Answer: }#1{\color{red}\sc End Answer.\\}}
 
 \title{Brief Article}
 \author{The Author}
@@ -59,73 +59,83 @@ Of course, you should also expect some variability around this expected value (n
 
 Note that you would like to make some general conclusions about the effect of different fertilizer treatments on some hypothetical field.
 So, you should structure the model so that you can learn about expected effects across fields, while accounting for the fact that their may be variability in the response of a particular field to a particular treatment.
-
-\subsection*{Tasks}
+\newpage
 \begin{compactenum}
 	\item Write down the likelihood for your model.
 	\\\answer{
-	$i$ indexes the year\\
-	$j$ indexes the field\\
-	$k$ indexes the Nitrogen (0= no Nitrogen, 1 = Nitrogen)\\
-	$m$ indexes the Phosphorus (0= no Phosphorus, 1 = Phosphorus) \\
-	$q$ indexes the individual in that year$\times$field$\times$treatment\\
-	$$y_{ijkmq} \sim N(A_i + B_j + kG_j + mD_j + kmR_j, \sigma_e^2)$$
+	$i$ indexes the year. $j$ indexes the field. $k$ indexes the Nitrogen (0= no Nitrogen, 1 = Nitrogen). $m$ indexes the Phosphorus (0= no Phosphorus, 1 = Phosphorus). $q$ indexes the individual in that year$\times$field$\times$treatment.
+	$$y_{ijkmq} \sim N(\alpha_i + \beta_j + k\gamma_j + m\delta_j + km\rho_j, \sigma_e^2)$$
 	$a$ is the number of years\\
 	$b$ is the number of fields\\
 	$n_{ijkm}$ is the number of individuals in the specified year$\times$field$\times$treatment\\
-	$$f(y_{ijkmq}|A_i, B_j, G_j, D_j, R_j, \sigma_e) = \frac{1}{\sqrt{2\pi,\sigma_e}}e^{\frac{-(y_{ijkmq} - A_i - B_j - kG_j - mD_j - kmR_j)^2}{2\sigma_e^2}}$$
-	$$f(\bm Y|\bm A, \bm B,\bm G,\bm D,\bm R, \sigma_e) = \prod_{i=1}^a \prod_{j=1}^b\prod_{k=0}^1\prod_{m=0}^1\prod_{q=1}^{n_{ijkm}} f(y_{ijkmq}|A_i, B_j, G_j, D_j, R_j, \sigma_e) $$
+	\vskip 1cm
+	$$f(y_{ijkmq}|\alpha_i, \beta_j, \gamma_j, \delta_j, \rho_j, \sigma_e) = \frac{1}{\sqrt{2\pi\sigma_e^2}}e^{\frac{-(y_{ijkmq} - \alpha_i - \beta_j - k\gamma_j - m\delta_j - km\rho_j)^2}{2\sigma_e^2}}$$
+	\vskip 1cm
+	$$f(\bm Y|\bm \alpha, \bm \beta,\bm \gamma,\bm \delta,\bm \rho, \sigma_e) = \prod_{i=1}^a \prod_{j=1}^b\prod_{k=0}^1\prod_{m=0}^1\prod_{q=1}^{n_{ijkm}} f(y_{ijkmq}|\alpha_i, \beta_j, \gamma_j, \delta_j, \rho_j, \sigma_e) $$
+	\vskip 1cm
+	\normalsize
+	Using the priors introduced below (next section), we can write the likelihood in terms of the ``highest level'' parameters:
+	\tiny
+	\begin{eqnarray*}f(\bm Y|\sigma_{\alpha}, \mu_\beta, \sigma_\beta, \mu_\gamma, \sigma_\gamma, \mu_\delta, \sigma_\delta, \mu_\rho, \sigma_\rho, \sigma_e) = \hskip8cm\\
+	\hskip1cm \int\int\int\int\int f(\bm Y|\bm \alpha, \bm \beta,\bm \gamma,\bm \delta,\bm \rho, \sigma_e) \Pr(\bm\alpha|\sigma_{\alpha})\Pr(\bm\beta|\mu_{\beta},\sigma_{\beta})\Pr(\bm\gamma|\mu_{\gamma},\sigma_{\gamma})\Pr(\bm\delta|\mu_{\delta},\sigma_{\delta})\Pr(\bm\rho|\mu_{\rho},\sigma_{\rho})d\bm \alpha d \bm \beta d\bm \gamma d\bm \delta d\bm \rho
+	 \end{eqnarray*}
+	 
+	\normalsize
+	(if we take the integration symbol over a vector of latent variables to mean that we perform the integration with respect to each variable in the vector, and we calculate the definite integral from $-\infty$ to $\infty$).
+	Where
+	\begin{eqnarray*}
+		\Pr(\bm\alpha|\sigma_{\alpha}) & = & \prod_i^{a}\frac{1}{\sqrt{2\pi\sigma_{\alpha}^2}}e^{\frac{-\alpha_i^2}{2\sigma_{\alpha}^2}}\\
+		\Pr(\bm\beta|\mu_{\beta},\sigma_{\beta}) & = & \prod_i^{a}\frac{1}{\sqrt{2\pi\sigma_{\beta}^2}}e^{\frac{-(\beta_i-\mu_{\beta})^2}{2\sigma_{\beta}^2}}\\
+		\Pr(\bm\gamma|\mu_{\gamma},\sigma_{\gamma}) & = & \prod_i^{a}\frac{1}{\sqrt{2\pi\sigma_{\gamma}^2}}e^{\frac{-(\gamma_i-\mu_{\gamma})^2}{2\sigma_{\gamma}^2}}\\
+		\Pr(\bm\delta|\mu_{\delta},\sigma_{\delta}) & = & \prod_i^{a}\frac{1}{\sqrt{2\pi\sigma_{\delta}^2}}e^{\frac{-(\delta_i-\mu_{\delta})^2}{2\sigma_{\delta}^2}}\\
+		\Pr(\bm\rho|\mu_{\rho},\sigma_{\rho}) & = & \prod_i^{a}\frac{1}{\sqrt{2\pi\sigma_{\rho}^2}}e^{\frac{-(\rho_i-\mu_{\rho})^2}{2\sigma_{\rho}^2}}\\\end{eqnarray*}
 	}
-	\item List each parameter and the prior distribution that you have chosen to use for the parameter.
-	\\\answer{ (there are lots of possible ways to answer - priors are up to the person analyzing the data!
+	\newpage
+	\large
+\end{compactenum}
 
+\begin{doublespace}	
+\begin{compactenum}
+	\item[2] List each parameter and the prior distribution that you have chosen to use for the parameter.
+	\\\answer{ (there are lots of possible ways to answer - priors are up to the person analyzing the data!)
 \begin{center}
 \begin{tabular}{|p{9cm}l|}
 \hline
-The standard deviation of the year effects &  $\sigma_a^2 \sim \mbox{Exponential}(\lambda=.1)$ \\
+$a$ year effects (latent variables)&  $\alpha_i\sim \mbox{Normal}(0, \sigma_{\alpha}^2)$\\
 \hline
-$a$ year effects (latent variables)&  $A_i\sim \mbox{Normal}(0, \sigma_a^2)$\\
+The variance of the year effects &  $\sigma_{\alpha}^2 \sim \mbox{Exponential}(\lambda=.1)$ \\
 \hline
-The expected value of the field effects (no fert)&  $\mu_b \sim \mbox{Gamma}(\mbox{mean}=250, \mbox{variance}=50)$\\
+$b$ field effects (latent variables)&  $\beta_j\sim \mbox{Normal}(\mu_{\beta}, \sigma_{\beta}^2)$\\
 \hline
-The standard deviation of the field effects(no fert) &  $\sigma_b^2 \sim \mbox{Exponential}(\lambda=.1)$\\
+The expected value of the field effects (no fert)&  $\mu_{\beta} \sim \mbox{Gamma}(\mbox{mean}=250, \mbox{variance}=50)$\\
 \hline
-$b$ field effects (latent variables)&  $B_j\sim \mbox{Normal}(\mu_b, \sigma_b^2)$\\
+The variance of the field effects(no fert) &  $\sigma_{\beta}^2 \sim \mbox{Exponential}(\lambda=.05)$\\
 \hline
-The expected value of the nitrogen effects&  $\mu_g \sim \mbox{Normal}(\mbox{mean}=5, \mbox{variance}=10)$\\
+$b$ field$\times$nitrogen effects (latent variables)&  $\gamma_j\sim \mbox{Normal}(\mu_{\gamma}, \sigma_{\gamma}^2)$\\
 \hline
-The standard deviation of the nitrogen effects&  $\sigma_g^2 \sim \mbox{Exponential}(\lambda=.1)$\\
+The expected value of the nitrogen effects&  $\mu_{\gamma} \sim \mbox{Normal}(\mbox{mean}=5, \mbox{variance}=10)$\\
 \hline
-$b$ field$\times$nitrogen effects (latent variables)&  $G_j\sim \mbox{Normal}(\mu_g, \sigma_g^2)$\\
+The variance of the nitrogen effects&  $\sigma_{\gamma}^2 \sim \mbox{Exponential}(\lambda=.1)$\\
 \hline
-The expected value of the phosphorus effects&  $\mu_d \sim \mbox{Normal}(\mbox{mean}=5, \mbox{variance}=10)$\\
+$b$ field$\times$phosphorus effects (latent variables)&  $\delta_j\sim \mbox{Normal}(\mu_{\delta}, \sigma_{\delta}^2)$\\
 \hline
-The standard deviation of the phosphorus effects&  $\sigma_d^2 \sim \mbox{Exponential}(\lambda=.1)$\\
+The expected value of the phosphorus effects&  $\mu_{\delta} \sim \mbox{Normal}(\mbox{mean}=5, \mbox{variance}=10)$\\
 \hline
-$b$ field$\times$phosphorus effects (latent variables)&  $D_j\sim \mbox{Normal}(\mu_d, \sigma_d^2)$\\
+The variance of the phosphorus effects&  $\sigma_{\delta}^2 \sim \mbox{Exponential}(\lambda=.1)$\\
 \hline
-The expected value of the nitrogen$\times$phosphorus interaction effect&  $\mu_r \sim \mbox{Normal}(\mbox{mean}=0, \mbox{variance}=10)$\\
+$b$ field$\times$nitrogen$\times$phosphorus interaction effects (latent variables)&  $\rho_j\sim \mbox{Normal}(\mu_{\rho}, \sigma_{\rho}^2)$\\
 \hline
-The standard deviation of the nitrogen$\times$phosphorus interaction effects&  $\sigma_r^2 \sim \mbox{Exponential}(\lambda=.1)$\\
+The expected value of the nitrogen$\times$phosphorus interaction effect&  $\mu_{\rho} \sim \mbox{Normal}(\mbox{mean}=0, \mbox{variance}=10)$\\
 \hline
-$b$ field$\times$nitrogen$\times$phosphorus interaction effects (latent variables)&  $R_j\sim \mbox{Normal}(\mu_r, \sigma_r^2)$\\
+The variance of the nitrogen$\times$phosphorus interaction effects&  $\sigma_{\rho}^2 \sim \mbox{Exponential}(\lambda=.1)$\\
 \hline
-The environmental/error starndard deviation&  $\sigma_e^2\sim \mbox{Exponential}(\lambda=.1)$\\
+The environmental/error standard deviation&  $\sigma_e^2\sim \mbox{Exponential}(\lambda=.1)$\\
 \hline
 \end{tabular}
 \end{center}
 \label{default}
 	}
-	\item Implement an MCMC algorithm that uses the data in \href{http://phylo.bio.ku.edu/slides/fertilization_data.csv}{fertilization\_data.csv} to inference posterior distributions for the parameters. \href{http://phylo.bio.ku.edu/slides/latent_gekko_svl.py.txt}{latent\_gekko\_svl.py.txt} may be useful as a template. Email me your implementation.
-	\item Perform an MCMC simulation. Summarize the evidence that your MCMC run has been conducted for enough iterations (\href{http://tree.bio.ed.ac.uk/software/tracer/}{Tracer} or \href{http://cran.r-project.org/web/packages/coda/index.html}{CODA} may be helpful for this) to generate useful results.
-	\item Based on your runs, answer the following questions (and give a brief explanation of how you calculate the answers).
-	\begin{compactenum}
-		\item If you could scale the experiment up to an unlimited number of fields, what is the probability that the mean effect of adding nitrogen alone will be an effect of 5g or greater?
-		\item Which field has the largest expected mass without fertilization?  
-		\item What is the probability is the probability that field \# 6 is the most productive (has the highest expected mass over a large number of years) if both N and P are added?
 \end{compactenum}
-		
-\end{compactenum}
-
+\end{doublespace}
 \end{document}  
 
