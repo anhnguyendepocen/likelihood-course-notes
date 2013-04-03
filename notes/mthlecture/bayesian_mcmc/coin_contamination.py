@@ -17,13 +17,20 @@ means run:
 '''
 import random
 import sys
-num_it = int(sys.argv[1])
-assert(num_it > 0)
-num_coins = int(sys.argv[2])
-assert(num_coins > 0)
-state = int(sys.argv[3])
-assert(num_coins > 0)
-data = tuple([int(i) for i in sys.argv[4:]])
+
+
+try:
+    num_it = int(sys.argv[1])
+    assert(num_it > 0)
+    num_coins = int(sys.argv[2])
+    assert(num_coins > 0)
+    state = int(sys.argv[3])
+    assert(num_coins > 0)
+    data = tuple([int(i) for i in sys.argv[4:]])
+    assert(len(data) > 0)
+except:
+    sys.exit('Expeciting:\npython coin_contamination.py <# iter> <# coins> <start state> <datum #1> <datum #2>...\n')
+
 max_obs = max(data)
 assert(max_obs <= num_coins)
 assert(min(data) >= 0)
@@ -36,11 +43,15 @@ def n_choose_k(n, k):
         num *= (n - i)
         denom *= (i + 1)
     nck = num/denom
-    print n, k, nck
+    #print n, k, nck
     return nck
-def fair_coin_prob(h, n):
-    return n_choose_k(n, h)/float(2 **n)
 
+def fair_coin_prob(h, n):
+    return n_choose_k(n, h)/float(2**n)
+
+# since the range of each datum is small and the set 
+#   of parameter values is small, we'll calculate 
+#   the likelihood for every combination.
 likelihood_factors = []
 for n in range(max_obs + 1):
     p = []
@@ -60,12 +71,16 @@ def calc_likelihood(theta):
 
 likelihood = calc_likelihood(state)
 assert(likelihood > 0.0)
-counts = [0]*(num_coins + 1)
-sys.stderr.write("Gen\tlike\ttheta\n")
+
+mcmc_samples = [0]*(num_coins + 1)
+
+# This is MCMC using the Metropolis algorithm:
+sys.stderr.write("Iter\tlike\ttheta\n")
 for i in xrange(num_it):
     sys.stderr.write("%d\t%f\t%d\n" % (i, likelihood, state))
-    counts[state] += 1
+    mcmc_samples[state] += 1
     prev_likelihood = likelihood
+    # propose a state from among the adjacent states
     if random.random() < 0.5:
         proposed = state + 1
         if state > num_coins:
@@ -74,22 +89,28 @@ for i in xrange(num_it):
         proposed = state - 1
         if state < 0:
             proposed = num_coins
-	# Prior ratio is 1.0, so we can ignore it
-	
-	# Hastings ratio is 1.0, so we can ignore it
-	
+    # Prior ratio is 1.0, so we could ignore it...
+    prior_ratio = (0.2)/(0.2)
+
     likelihood = calc_likelihood(proposed)
-    if likelihood > prev_likelihood:
+    likelihood_ratio = likelihood/prev_likelihood
+
+    posterior_ratio = likelihood_ratio*prior_ratio
+
+    # Hastings ratio is 1.0, so we can ignore it...
+    hastings_ratio = (0.5)/(0.5)
+
+    acceptance_ratio = posterior_ratio*hastings_ratio
+    #print state, '->', proposed, 'alpha=', acceptance_ratio, 'prev_likelihood=',prev_likelihood, 'proposed_likelihood=',likelihood
+    if random.random() < acceptance_ratio:
         state = proposed
     else:
-        if random.random() < likelihood/prev_likelihood:
-            state = proposed
-        else:
-            likelihood = prev_likelihood
+        # state = old state already, so we don't have to change it
+        likelihood = prev_likelihood
             
 print "Posterior probabilities from MCMC"
 for state in range(num_coins + 1):
-    print state, float(counts[state])/num_it
+    print state, float(mcmc_samples[state])/num_it
 
 print "\nTrue Posterior probabilities (calculated analytically)"
 likelihood_list = [calc_likelihood(i) for i in range(num_coins + 1)]
