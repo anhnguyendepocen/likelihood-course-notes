@@ -83,11 +83,11 @@ for i in xrange(num_it):
     # propose a state from among the adjacent states
     if random.random() < 0.5:
         proposed = state + 1
-        if state > num_coins:
+        if proposed > num_coins:
             proposed = 0
     else:
         proposed = state - 1
-        if state < 0:
+        if proposed < 0:
             proposed = num_coins
     # Prior ratio is 1.0, so we could ignore it...
     prior_ratio = (0.2)/(0.2)
