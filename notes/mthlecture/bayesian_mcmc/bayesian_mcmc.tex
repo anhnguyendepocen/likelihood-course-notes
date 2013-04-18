@@ -54,7 +54,7 @@
 
 
 \usepackage{hyperref}
-\hypersetup{backref,  pdfpagemode=FullScreen,  linkcolor=blue, citecolor=red, colorlinks=true, hyperindex=true}
+\hypersetup{backref,  linkcolor=blue, citecolor=red, colorlinks=true, hyperindex=true}
 
 \begin{document}
 \newcounter{appendixCounter}
@@ -450,8 +450,8 @@ It is fine for $\prop{j}{k} = \prop{k}{j} = 0$ for some pairs of states (we alre
 Once we have chosen a proposal scheme, though, we do not have as much flexibility when choosing whether or not to accept a proposal.
 Rearranging terms in equation (\ref{moveToPropAccept}) to put the acceptance probabilities on one side gives us:
 \begin{eqnarray*}
-	 \frac{\accept{1}{0}}{\accept{0}{1}} &  = & \frac{\Pr(D|\theta=0)\Pr(\theta=0)\prop{1}{0}}{\Pr(D|\theta=1)\Pr(\theta=1)\prop{0}{1}} \\
-	 	& = & \left(\frac{\Pr(D|\theta=0)}{\Pr(D|\theta=1)}\right)\left(\frac{\Pr(\theta=0)}{\Pr(\theta=1)}\right)\left(\frac{\prop{1}{0}}{\prop{0}{1}}\right) \label{MetropHastings}
+	 \frac{\accept{1}{0}}{\accept{0}{1}} &  = & \frac{\Pr(D|\theta=0)\Pr(\theta=0)\prop{0}{1}}{\Pr(D|\theta=1)\Pr(\theta=1)\prop{1}{0}} \\
+	 	& = & \left(\frac{\Pr(D|\theta=0)}{\Pr(D|\theta=1)}\right)\left(\frac{\Pr(\theta=0)}{\Pr(\theta=1)}\right)\left(\frac{\prop{0}{1}}{\prop{1}{0}}\right) \label{MetropHastings}
 \end{eqnarray*}
 or, in words,
 \begin{eqnarray}
