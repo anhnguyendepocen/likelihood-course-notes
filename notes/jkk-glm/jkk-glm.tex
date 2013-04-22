@@ -1,0 +1,155 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\textwidth = 6.5 in
+\textheight = 9 in
+\oddsidemargin = 0.0 in
+\evensidemargin = 0.0 in
+\topmargin = 0.0 in
+\headheight = 0.0 in
+\headsep = 0.0 in
+\parskip = 0.2in
+\parindent = 0.0in
+\usepackage{paralist} %compactenum
+
+%\newtheorem{theorem}{Theorem}
+%\newtheorem{corollary}[theorem]{Corollary}
+%\newtheorem{definition}{Definition}
+\usepackage{tipa}
+\usepackage{amsfonts}
+\usepackage[mathscr]{eucal}
+
+% Use the natbib package for the bibliography
+\usepackage[round]{natbib}
+\bibliographystyle{apalike}
+\newcommand{\prop}[2]{q(#1,#2)}
+\newcommand{\accept}[2]{\alpha({#1,#2})}
+
+\renewcommand{\Pr}{{\mathbb P}}
+\usepackage{wrapfig}
+\usepackage{bm}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{pgf}
+\include{positioning}
+\usepackage{tikz}
+\usetikzlibrary{trees,arrows,positioning,scopes}
+\tikzset{terminal/.style={rectangle,minimum size=6mm,rounded corners=3mm,very thick,draw=black!50, top color=white,bottom color=black!20, font=\ttfamily}}
+\tikzset{hidden/.style={rectangle,draw=white,fill=white,thick}}
+\tikzset{analysis/.style={rectangle,rounded corners,draw=black!50,fill=white,thick,minimum width=6cm}}
+\tikzset{charmatrix/.style={rectangle,draw=none,fill=black,minimum width=6cm,minimum height=8mm}}
+\tikzset{augmat/.style={rectangle,draw=none,fill=red,minimum width=6cm,minimum height=15mm}}
+\tikzset{tree/.style={rectangle,draw=black,fill=black,minimum width=6cm,minimum height=8mm}}
+\tikzset{inf/.style={rectangle,rounded corners,draw=black!50,fill=green!20,thick,minimum width=6cm,minimum height=2cm}}
+\tikzset{toArrow/.style={stealth-,ultra thick}}
+
+
+\newcommand{\expect}[0]{\mathbb{E}}
+
+
+\usepackage{hyperref}
+\hypersetup{backref,  linkcolor=blue, citecolor=red, colorlinks=true, hyperindex=true}
+
+\begin{document}
+\newcounter{appendixCounter}
+
+\section*{GLM notes of JKK's lecture}
+I am using $I$ for the incidence matrix, while John used $X$ in lecture.
+
+\begin{eqnarray}
+  \ell & = & C - \frac{1}{2}\ln|V| -\frac{1}{2}(Y-I\eta)^TV^{-1}(Y-I\eta)\\
+  Y & = & \left[\begin{array}{c} y_{11} \\
+  	y_{12} \\
+  	y_{21} \\
+  	y_{22} \\
+  	y_{31} \\
+  	y_{32} \\
+  	\end{array}\right]\\
+  \eta & = & \left[\begin{array}{c} \mu_{1} \\
+  	\mu_{2} \\
+  	\mu_{3}\end{array}\right]\\
+  I & = & \left[\begin{array}{ccc} 1 & 0 & 0 \\
+  	1 & 0 & 0 \\
+  	0 & 1 & 0 \\
+  	0 & 1 & 0 \\
+  	0 & 0 & 1 \\
+  	0 & 0 & 1 \\
+  	\end{array}\right]\\
+  	\expect[{Y}] = I\eta & = & \left[\begin{array}{c} \mu_{1} \\
+  	\mu_{1} \\
+  	\mu_{2} \\
+  	\mu_{2} \\
+  	\mu_{3} \\
+  	\mu_{3} \\
+  	\end{array}\right]\\
+\end{eqnarray}
+
+\begin{tabular}{rr|cc|}
+& & \multicolumn{2}{c}{Diet}\\
+& & C & T \\
+\hline
+Fam & 1 & $y_{C11}$ & $y_{T11}$ \\
+     &  & $y_{C12}$ & $y_{T12}$ \\
+\hline
+    & 2 & $y_{C21}$ & $y_{T21}$ \\
+     &  & $y_{C22}$ & $y_{T22}$ \\
+\hline
+\end{tabular}
+\begin{eqnarray}
+ Y_{ijk} & = & \mu + \tau_i + F_j + C_{ij} + \epsilon_{ijk}\\
+  Y & = & \left[\begin{array}{c} y_{C11} \\
+  	y_{C12} \\
+  	y_{C21} \\
+  	y_{C22} \\
+  	y_{T11} \\
+  	y_{T12} \\
+  	y_{T21} \\
+  	y_{T22} \end{array}\right]\\
+  \eta & = & \left[\begin{array}{c} \mu \\
+  	\tau_C \\
+  	\tau_T 
+  	\end{array}\right]\\
+  \mbox{Var}[Y_{C11}] = \nu & = & \sigma_{F}^2 + \sigma_{C}^2 + \sigma_{E}^2 \\
+  \mbox{Cov}[Y_{C11},Y_{C12}] = c_1  & = & \mbox{Cov}[F_1 + C_{C1} + \epsilon_{C11},F_1 + C_{C1} + \epsilon_{C12}] \\
+  & = & \sigma_{F}^2 + \sigma_{C}^2\\
+  \mbox{Cov}[Y_{T11},Y_{T12}]  & = & \mbox{Cov}[F_1 + C_{T1} + \epsilon_{T11},F_1 + C_{T1} + \epsilon_{T12}] \\
+  & = & \sigma_{F}^2 + \sigma_{C}^2 = c_1\\
+  \mbox{Cov}[Y_{C11},Y_{C21}] = & = & \mbox{Cov}[F_1 + C_{C1} + \epsilon_{C11},F_2 + C_{T2} + \epsilon_{C22}] \\
+  & = & 0\\
+  \mbox{Cov}[Y_{C11},Y_{T11}]  = & = & \mbox{Cov}[F_1 + C_{C1} + \epsilon_{C11},F_1 + C_{T1} + \epsilon_{T12}] \\
+  & = & \sigma_{F}^2\\
+  V & = & \left[\begin{array}{cccccccc} \nu & c_1 & 0 & 0 & \sigma_{F}^2 & \sigma_{F}^2 & 0 & 0 \\ 
+     c_1 & \nu & 0 & 0 & \sigma_{F}^2 & \sigma_{F}^2 & 0 & 0 \\
+     0 & 0 & \nu & c_1 & 0 & 0 & \sigma_{F}^2 & \sigma_{F}^2\\
+     0 & 0 & c_1 & \nu & 0 & 0 & \sigma_{F}^2 & \sigma_{F}^2\\
+     \sigma_{F}^2 & \sigma_{F}^2 & 0 & 0 & \nu & c_1 & 0 & 0\\ 
+     \sigma_{F}^2 & \sigma_{F}^2 & 0 & 0 & c_1 & \nu & 0 & 0 \\
+     0 & 0 & \sigma_{F}^2 & \sigma_{F}^2 & 0 & 0 & \nu & c_1 \\
+     0 & 0 & \sigma_{F}^2 & \sigma_{F}^2 & 0 & 0 & c_1 & \nu  \\
+  \end{array}\right]
+\end{eqnarray}
+
+Reordering the order of data could give us a block diagonal. Which is nice because matrix inversion is $\mathcal{O}(N^3)$:
+\begin{eqnarray}
+  Y & = & \left[\begin{array}{c} y_{C11} \\
+  	y_{C12} \\
+  	y_{T11} \\
+  	y_{T12} \\
+  	y_{C21} \\
+  	y_{C22} \\
+  	y_{T21} \\
+  	y_{T22} \end{array}\right]\\
+  V & = & \left[\begin{array}{cccccccc} \nu & c_1 & \sigma_{F}^2 & \sigma_{F}^2 & 0 & 0 & 0 & 0 \\ 
+     c_1 & \nu & \sigma_{F}^2 & \sigma_{F}^2 & 0 & 0 & 0 & 0 \\
+     \sigma_{F}^2 & \sigma_{F}^2 & \nu & c_1 & 0 & 0 & 0 & 0\\
+     \sigma_{F}^2 & \sigma_{F}^2 & c_1 & \nu & 0 & 0 & 0 & 0\\
+     0 & 0 & 0 & 0 & \nu & c_1 & \sigma_{F}^2 & \sigma_{F}^2\\ 
+     0 & 0 & 0 & 0 & c_1 & \nu & \sigma_{F}^2 & \sigma_{F}^2 \\
+     0 & 0 & 0 & 0 & \sigma_{F}^2 & \sigma_{F}^2 & \nu & c_1 \\
+     0 & 0 & 0 & 0 & \sigma_{F}^2 & \sigma_{F}^2 & c_1 & \nu  \\
+  \end{array}\right]
+\end{eqnarray}
+\end{document}
